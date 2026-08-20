@@ -432,7 +432,7 @@
   <div class="row">
     <div>
       <label for="mercado">Mercado</label>
-      <input type="text" id="mercado" placeholder="Nome do Mercado">
+      <input type="text" id="mercado" placeholder="Ex: Supermercado Bom Preço">
     </div>
   </div>
 
@@ -441,7 +441,7 @@
   <div class="row">
     <div>
       <label for="itemNome">Item</label>
-      <input type="text" id="itemNome" placeholder="Ex: Arroz, Feijão, Leite">
+      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
     </div>
     <div class="qty-col">
       <label for="itemQtd">Qtd</label>
@@ -456,7 +456,7 @@
   <div class="mic-row">
     <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
   </div>
-  <p class="mic-hint">ex: "2 pacotes de arroz 5,80"</p>
+  <p class="mic-hint">ex: "arroz 4 20" ou "2 feijão 8,50"</p>
 
   <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
 
@@ -723,67 +723,71 @@ document.getElementById('resetLink').addEventListener('click', async () => {
   stampArea.innerHTML = '';
 });
 
-/* ---------- Voice Input Avançado (Nome, Quantidade e Preço) ---------- */
+/* ---------- RECONHECIMENTO DE VOZ REFORMULADO ---------- */
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const micUnico = document.getElementById('micUnico');
 
 function capitalize(str){
+  if(!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function parseVoiceInput(text){
   let raw = text.toLowerCase().trim();
+
+  // 1. Converte números falados por extenso para dígitos
+  const textoParaNumero = {
+    "um": "1", "uma": "1", "dois": "2", "duas": "2", "três": "3", "tres": "3", 
+    "quatro": "4", "cinco": "5", "seis": "6", "sete": "7", "oito": "8", "nove": "9", "dez": "10"
+  };
+
+  Object.keys(textoParaNumero).forEach(palavra => {
+    const reg = new RegExp(`\\b${palavra}\\b`, 'gi');
+    raw = raw.replace(reg, textoParaNumero[palavra]);
+  });
+
+  // Trata expressões de valor comuns como "10 e 50" -> "10.50"
+  raw = raw.replace(/(\d+)\s*e\s*(\d{2})\b/g, '$1.$2');
+
   let qtd = 1;
   let preco = null;
   let nome = raw;
 
-  // 1. Mapeamento simples de números falados como palavras no início
-  const palavrasNumeros = {
-    "um": 1, "uma": 1, "dois": 2, "duas": 2, "três": 3, "tres": 3, 
-    "quatro": 4, "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10
-  };
+  // 2. Extrai preço (Normalmente é o último valor numérico/monetário falado)
+  const regexPreco = /(\d+(?:[.,]\d+)?)\s*(?:reais|real|r\$)?\s*$/i;
+  const matchPreco = raw.match(regexPreco);
 
-  // Verifica se o texto começa com número por palavra
-  const palavras = raw.split(' ');
-  if(palavrasNumeros[palavras[0]]){
-    qtd = palavrasNumeros[palavras[0]];
-    palavras.shift(); // remove a palavra da quantidade
-    raw = palavras.join(' ');
-  } else {
-    // 2. Extrai quantidade no início (ex: "2 pacotes", "3x", "5 unidades")
-    const matchQtd = raw.match(/^(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?\b/i);
-    if(matchQtd){
-      qtd = parseInt(matchQtd[1]);
-      raw = raw.slice(matchQtd[0].length).trim();
-    }
+  if(matchPreco){
+    const valorStr = matchPreco[1].replace(',', '.');
+    preco = parseFloat(valorStr);
+    // Remove o preço do texto restante
+    raw = raw.slice(0, matchPreco.index).trim();
   }
 
-  // 3. Extrai Preço (procura o último número do texto)
-  const numberRegex = /\d+(?:[.,]\d+)?/g;
-  let lastMatch = null;
-  let m;
-  while((m = numberRegex.exec(raw)) !== null){
-    lastMatch = m;
+  // 3. Extrai Quantidade (Pode estar no início ou no fim do texto restante)
+  // Exemplo início: "2 arroz"
+  const matchQtdInicio = raw.match(/^(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?\b/i);
+  // Exemplo fim: "arroz 4" ou "arroz 4 pacotes"
+  const matchQtdFim = raw.match(/\b(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?$/i);
+
+  if(matchQtdInicio){
+    qtd = parseInt(matchQtdInicio[1]);
+    raw = raw.slice(matchQtdInicio[0].length).trim();
+  } else if(matchQtdFim){
+    qtd = parseInt(matchQtdFim[1]);
+    raw = raw.slice(0, matchQtdFim.index).trim();
   }
 
-  if(lastMatch){
-    const precoStr = lastMatch[0].replace(',', '.');
-    preco = parseFloat(precoStr);
+  // 4. Limpeza final do Nome do produto
+  nome = raw
+    .replace(/\b(de|por|custou|com|unidades?|pacotes?|caixas?)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-    // O nome é o trecho antes do preço
-    nome = raw.slice(0, lastMatch.index).trim();
-  } else {
-    nome = raw;
-  }
-
-  // Limpeza final do Nome
-  nome = nome.replace(/\b(de|por|reais|real|r\$|custou|a|,)\s*$/gi, '').trim();
-  nome = nome.replace(/^\b(de|do|da|pacote|pacotes)\b\s*/gi, '').trim();
-
-  return { 
-    nome: capitalize(nome) || capitalize(raw), 
-    qtd: qtd > 0 ? qtd : 1, 
-    preco: (preco !== null && !isNaN(preco)) ? preco : null 
+  return {
+    nome: capitalize(nome) || capitalize(text),
+    qtd: qtd > 0 ? qtd : 1,
+    preco: (preco !== null && !isNaN(preco)) ? preco : null
   };
 }
 
