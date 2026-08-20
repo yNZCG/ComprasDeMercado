@@ -414,6 +414,8 @@
     <div id="compareContent"></div>
   </div>
 
+  <button class="btn btn-add btn-outline" id="btnExportar" style="margin-bottom: 15px;">📥 Baixar Relatório Completo</button>
+
   <p class="history-title">compras registradas</p>
   <div id="historyList" class="loading">carregando...</div>
 
@@ -422,8 +424,8 @@
 
 <div class="receipt">
   <header>
-    <p class="tagline">Feito com a intenção de economizar</p>
-    <h1 class="store-name" id="storeTitle">Compras do Mês</h1>
+    <p class="tagline">registro de compras</p>
+    <h1 class="store-name" id="storeTitle">Minha Nota</h1>
   </header>
 
   <div class="row">
@@ -770,6 +772,77 @@ if(!SpeechRecognitionAPI){
     recognition.start();
   });
 }
+
+/* ---------- Exportação de Relatório (Comparativo + Histórico) ---------- */
+document.getElementById('btnExportar').addEventListener('click', () => {
+  if (compras.length === 0) {
+    alert('Nenhuma compra registrada para exportar.');
+    return;
+  }
+
+  let relatorio = `=========================================\n`;
+  relatorio += `        RELATÓRIO DE COMPRAS             \n`;
+  relatorio += `=========================================\n\n`;
+
+  // 1. COMPARATIVO GERAL
+  relatorio += `[ COMPARATIVO GERAL ]\n`;
+  relatorio += `-----------------------------------------\n`;
+  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
+  const mediaGeral = totalGeral / compras.length;
+  
+  relatorio += `Total Geral Gasto: ${fmt(totalGeral)}\n`;
+  relatorio += `Total de Compras:  ${compras.length}\n`;
+  relatorio += `Média por Compra:  ${fmt(mediaGeral)}\n`;
+
+  const porMercado = {};
+  compras.forEach(c => {
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
+    porMercado[c.mercado].push(c.total);
+  });
+  
+  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
+    mercado: m,
+    media: vals.reduce((s,v)=>s+v,0)/vals.length,
+    n: vals.length
+  })).sort((a,b) => a.media - b.media);
+
+  if (mercadoMedias.length > 1) {
+    const maisBarato = mercadoMedias[0];
+    const maisCaro = mercadoMedias[mercadoMedias.length - 1];
+    relatorio += `Mercado + Barato: ${maisBarato.mercado} (média: ${fmt(maisBarato.media)})\n`;
+    relatorio += `Mercado + Caro:   ${maisCaro.mercado} (média: ${fmt(maisCaro.media)})\n`;
+  }
+  relatorio += `-----------------------------------------\n\n`;
+
+  // 2. HISTÓRICO COMPLETO
+  relatorio += `[ HISTÓRICO DE COMPRAS ]\n`;
+  relatorio += `-----------------------------------------\n`;
+
+  const ordenadas = compras.slice().reverse();
+  ordenadas.forEach((c, index) => {
+    const data = new Date(c.data);
+    const dataStr = data.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    relatorio += `\n#${compras.length - index} | MERCADO: ${c.mercado.toUpperCase()}\n`;
+    relatorio += `Data: ${dataStr}\n`;
+    relatorio += `Itens:\n`;
+    c.itens.forEach(it => {
+      relatorio += `  - ${it.nome.padEnd(25, '.')} ${fmt(it.preco)}\n`;
+    });
+    relatorio += `TOTAL DA COMPRA: ${fmt(c.total)}\n`;
+    relatorio += `-----------------------------------------\n`;
+  });
+
+  // Baixar arquivo .txt
+  const blob = new Blob([relatorio], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Relatorio_Compras_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 
 /* ---------- Storage Corrigido (localStorage) ---------- */
 function saveCompras(){
