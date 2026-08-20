@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nota de Compras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3EFE2;
+    --paper-dark:#E8E1CE;
+    --ink:#2B2620;
+    --ink-soft:#5C5344;
+    --red:#B84226;
+    --yellow:#DDB833;
+    --green:#4A7856;
+    --line:#C9BFA8;
+  }
+  *{box-sizing:border-box;}
+  html, body{ height:100%; margin:0; }
+  body{
+    background:
+      repeating-linear-gradient(135deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 2px, transparent 2px, transparent 8px),
+      var(--paper-dark);
+    min-height:100%;
+    font-family:'Courier Prime', monospace;
+    color:var(--ink);
+    padding:32px 16px 80px;
+  }
+
+  /* Hamburger menu button */
+  .menu-btn{
+    position:fixed;
+    top:18px; right:18px;
+    width:44px; height:44px;
+    border-radius:50%;
+    background:var(--ink);
+    border:none;
+    cursor:pointer;
+    z-index:40;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    box-shadow:0 4px 12px rgba(43,38,32,0.3);
+  }
+  .menu-btn span{
+    display:block;
+    width:18px; height:2px;
+    background:var(--paper);
+    border-radius:1px;
+  }
+
+  /* Drawer + overlay: anchored with top/right/bottom (not height:100%) so they
+     always span the full viewport regardless of document/body height quirks */
+  .overlay{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(43,38,32,0.45);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+    z-index:45;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+
+  .drawer{
+    position:fixed;
+    top:0; right:0; bottom:0;
+    width:min(400px, 88vw);
+    background:var(--paper);
+    box-shadow:-8px 0 30px rgba(43,38,32,0.3);
+    transform:translateX(100%);
+    transition:transform .3s ease;
+    z-index:50;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:24px 20px 40px;
+  }
+  .drawer.show{ transform:translateX(0); }
+  .drawer-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:16px;
+  }
+  .drawer-head h2{
+    font-family:'Special Elite', monospace;
+    font-size:19px;
+    margin:0;
+  }
+  .close-btn{
+    background:none; border:none;
+    font-size:22px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    line-height:1;
+  }
+
+  .receipt{
+    max-width:440px;
+    margin:0 auto;
+    background:var(--paper);
+    box-shadow:0 12px 40px rgba(43,38,32,0.18), 0 2px 0 rgba(43,38,32,0.05);
+    position:relative;
+    padding:28px 26px 20px;
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:12px;
+    background:
+      radial-gradient(circle at 8px 6px, var(--paper-dark) 6px, transparent 7px) repeat-x;
+    background-size:16px 12px;
+  }
+  .receipt::before{ top:-6px; }
+  .receipt::after{ bottom:-6px; transform:scaleY(-1); }
+
+  header{ text-align:center; margin-bottom:14px; }
+  .store-name{
+    font-family:'Special Elite', monospace;
+    font-size:26px;
+    letter-spacing:1px;
+    margin:0;
+  }
+  .tagline{
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .divider{
+    border:none;
+    border-top:1px dashed var(--line);
+    margin:16px 0;
+  }
+  label{
+    display:block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  input{
+    width:100%;
+    font-family:'Courier Prime', monospace;
+    font-size:15px;
+    padding:8px 10px;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  input:focus{ outline:2px solid var(--red); outline-offset:1px; }
+
+  .row{ display:flex; gap:10px; margin-bottom:10px; }
+  .row > div{ flex:1; }
+  .row .qty-price{ flex:0 0 110px; }
+
+  .mic-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:2px 0 14px;
+  }
+  .mic-btn{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    cursor:pointer;
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    letter-spacing:.5px;
+    padding:10px 12px;
+    transition:background .15s ease;
+  }
+  .mic-btn:hover{ background:var(--line); }
+  .mic-btn .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--red);
+    flex:0 0 auto;
+  }
+  .mic-btn.listening{
+    background:var(--red);
+    color:#fff;
+    animation:pulse 1s infinite;
+  }
+  .mic-btn.listening .dot{ background:#fff; }
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(184,66,38,0.5); }
+    50%{ box-shadow:0 0 0 8px rgba(184,66,38,0); }
+  }
+  .mic-btn[disabled]{ opacity:.35; cursor:not-allowed; }
+  .mic-hint{
+    font-family:'Caveat', cursive;
+    font-size:15px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:-8px 0 12px;
+  }
+
+  .btn{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:10px 14px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+    transition:transform .08s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0); }
+  .btn-add{ width:100%; }
+  .btn-outline{
+    background:transparent;
+    color:var(--ink);
+  }
+  .btn-red{ background:var(--red); border-color:var(--red); color:#fff; }
+  .btn-red:hover{ background:#9c3a20; }
+
+  .items{
+    margin:14px 0 0;
+    padding:0;
+    list-style:none;
+    min-height:20px;
+  }
+  .items li{
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    padding:6px 0;
+    border-bottom:1px dotted var(--line);
+    animation:printIn .25s ease;
+  }
+  .items li .nome{ padding-right:8px; }
+  .items li .preco{ white-space:nowrap; font-weight:700; }
+  .items li button{
+    background:none;border:none;color:var(--red);
+    font-family:'Courier Prime', monospace;
+    cursor:pointer; font-size:13px; margin-left:8px;
+  }
+  @keyframes printIn{
+    from{ opacity:0; transform:translateY(-6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .empty{
+    text-align:center;
+    font-size:13px;
+    color:var(--ink-soft);
+    padding:14px 0;
+    font-style:italic;
+  }
+
+  .subtotal-row{
+    display:flex; justify-content:space-between;
+    align-items:baseline;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:2px solid var(--ink);
+  }
+  .subtotal-row .label{
+    font-family:'Special Elite', monospace;
+    font-size:15px;
+  }
+  .subtotal-row .value{
+    font-size:22px;
+    font-weight:700;
+  }
+
+  .finalize-area{ margin-top:16px; }
+
+  .stamp{
+    display:inline-block;
+    border:3px solid var(--red);
+    color:var(--red);
+    font-family:'Special Elite', monospace;
+    font-size:14px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:6px 12px;
+    transform:rotate(-4deg);
+    border-radius:6px;
+    margin:10px 0 4px;
+  }
+  .stamp.green{ border-color:var(--green); color:var(--green); }
+  .stamp.neutral{ border-color:var(--ink-soft); color:var(--ink-soft); }
+
+  .note{
+    font-family:'Caveat', cursive;
+    font-size:19px;
+    color:var(--ink-soft);
+    margin:4px 0 0;
+  }
+
+  .barcode{
+    height:34px;
+    margin:18px 0 6px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 3px, var(--ink) 3px 5px, transparent 5px 8px);
+    opacity:.85;
+  }
+
+  .history-title{
+    font-family:'Special Elite', monospace;
+    font-size:15px;
+    color:var(--ink-soft);
+    margin:20px 0 10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  .history-title:first-child{ margin-top:0; }
+  .trip{
+    background:var(--paper-dark);
+    padding:12px 14px;
+    margin-bottom:8px;
+    cursor:pointer;
+  }
+  .trip-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:13px;
+  }
+  .trip-head .mercado{ font-weight:700; }
+  .trip-head .meta{ color:var(--ink-soft); font-size:11px; }
+  .trip-head .total{ font-weight:700; font-size:14px; }
+  .trip-body{
+    display:none;
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--line);
+    font-size:12px;
+  }
+  .trip.open .trip-body{ display:block; }
+  .trip-body li{
+    display:flex; justify-content:space-between;
+    padding:3px 0;
+    list-style:none;
+  }
+  .trip ul{ padding:0; margin:0; }
+
+  .compare-box{
+    background:var(--yellow);
+    padding:14px 16px;
+    font-size:13px;
+    margin-bottom:18px;
+  }
+  .compare-box h3{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    margin:0 0 8px;
+    text-transform:uppercase;
+  }
+  .compare-box .line{ display:flex; justify-content:space-between; padding:2px 0; }
+
+  .reset-link{
+    display:block;
+    text-align:center;
+    margin-top:24px;
+    font-size:12px;
+    color:var(--red);
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .loading{ text-align:center; color:var(--ink-soft); font-size:13px; padding:20px; }
+
+  /* Confirm modal */
+  .modal-overlay{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(43,38,32,0.55);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:60;
+    padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--paper);
+    max-width:320px;
+    width:100%;
+    padding:22px 22px 18px;
+    box-shadow:0 16px 50px rgba(43,38,32,0.4);
+    text-align:center;
+  }
+  .modal-box p{
+    font-size:14px;
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+  .modal-actions{
+    display:flex; gap:10px;
+  }
+  .modal-actions button{ flex:1; }
+</style>
+</head>
+<body>
+
+<button class="menu-btn" id="menuBtn" aria-label="Abrir histórico">
+  <span></span><span></span><span></span>
+</button>
+
+<div class="overlay" id="overlay"></div>
+
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>Histórico &amp; comparativo</h2>
+    <button class="close-btn" id="closeDrawer" aria-label="Fechar">×</button>
+  </div>
+
+  <div class="compare-box" id="compareBox" style="display:none;">
+    <h3>Comparativo geral</h3>
+    <div id="compareContent"></div>
+  </div>
+
+  <p class="history-title">compras registradas</p>
+  <div id="historyList" class="loading">carregando...</div>
+
+  <span class="reset-link" id="resetLink">apagar todo o histórico</span>
+</aside>
+
+<div class="receipt">
+  <header>
+    <p class="tagline">registro de compras</p>
+    <h1 class="store-name" id="storeTitle">Minha Nota</h1>
+  </header>
+
+  <div class="row">
+    <div>
+      <label for="mercado">Mercado</label>
+      <input type="text" id="mercado" placeholder="Ex: Supermercado Bom Preço">
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <div>
+      <label for="itemNome">Item</label>
+      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
+    </div>
+    <div class="qty-price">
+      <label for="itemPreco">Preço R$</label>
+      <input type="number" id="itemPreco" step="0.01" min="0" placeholder="0,00">
+    </div>
+  </div>
+
+  <div class="mic-row">
+    <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
+  </div>
+  <p class="mic-hint">diga algo como "arroz 5,80"</p>
+
+  <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
+
+  <ul class="items" id="itemsList">
+    <li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>
+  </ul>
+
+  <div class="subtotal-row">
+    <span class="label">Total</span>
+    <span class="value" id="subtotalValue">R$ 0,00</span>
+  </div>
+
+  <div class="barcode"></div>
+
+  <div class="finalize-area">
+    <button class="btn btn-red btn-add" id="btnFinalizar">Finalizar compra</button>
+  </div>
+
+  <div id="stampArea"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <p>Tem certeza que você quer apagar o histórico de compras?<br><span style="color:var(--ink-soft); font-size:12px;">Essa ação não pode ser desfeita.</span></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modalCancel">Cancelar</button>
+      <button class="btn btn-red" id="modalConfirm">Apagar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+
+let currentItems = [];
+let compras = [];
+
+const itemsList = document.getElementById('itemsList');
+const subtotalValue = document.getElementById('subtotalValue');
+const historyList = document.getElementById('historyList');
+const compareBox = document.getElementById('compareBox');
+const compareContent = document.getElementById('compareContent');
+const stampArea = document.getElementById('stampArea');
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderItems(){
+  if(currentItems.length === 0){
+    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>';
+  } else {
+    itemsList.innerHTML = currentItems.map((it, i) => `
+      <li>
+        <span class="nome">${escapeHtml(it.nome)}</span>
+        <span class="preco">${fmt(it.preco)} <button data-i="${i}" class="btn-remove" title="remover">×</button></span>
+      </li>
+    `).join('');
+    itemsList.querySelectorAll('.btn-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentItems.splice(Number(btn.dataset.i), 1);
+        renderItems();
+      });
+    });
+  }
+  const subtotal = currentItems.reduce((s, it) => s + it.preco, 0);
+  subtotalValue.textContent = fmt(subtotal);
+}
+
+document.getElementById('btnAdd').addEventListener('click', () => {
+  const nomeEl = document.getElementById('itemNome');
+  const precoEl = document.getElementById('itemPreco');
+  const nome = nomeEl.value.trim();
+  const preco = parseFloat(precoEl.value);
+  if(!nome || isNaN(preco) || preco < 0){
+    nomeEl.style.outline = !nome ? '2px solid var(--red)' : '';
+    precoEl.style.outline = (isNaN(preco) || preco < 0) ? '2px solid var(--red)' : '';
+    return;
+  }
+  currentItems.push({ nome, preco });
+  nomeEl.value = '';
+  precoEl.value = '';
+  nomeEl.style.outline = '';
+  precoEl.style.outline = '';
+  renderItems();
+  nomeEl.focus();
+});
+
+[document.getElementById('itemNome'), document.getElementById('itemPreco')].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAdd').click(); }
+  });
+});
+
+document.getElementById('btnFinalizar').addEventListener('click', async () => {
+  const mercadoEl = document.getElementById('mercado');
+  const mercado = mercadoEl.value.trim();
+  if(!mercado){
+    mercadoEl.style.outline = '2px solid var(--red)';
+    mercadoEl.focus();
+    return;
+  }
+  if(currentItems.length === 0){
+    stampArea.innerHTML = '<p class="note">adicione ao menos um item antes de finalizar.</p>';
+    return;
+  }
+  mercadoEl.style.outline = '';
+  const total = currentItems.reduce((s, it) => s + it.preco, 0);
+  const compra = {
+    id: 'compra_' + Date.now(),
+    mercado,
+    data: new Date().toISOString(),
+    itens: currentItems.slice(),
+    total
+  };
+
+  const comparisonHtml = buildComparison(compra);
+
+  compras.push(compra);
+  await saveCompras();
+
+  stampArea.innerHTML = comparisonHtml;
+  renderHistory();
+  renderCompareBox();
+
+  currentItems = [];
+  renderItems();
+  mercadoEl.value = '';
+});
+
+function buildComparison(novaCompra){
+  const anteriores = compras.filter(c => c.mercado.toLowerCase() === novaCompra.mercado.toLowerCase());
+  if(anteriores.length === 0){
+    return `<div class="stamp neutral">primeira vez aqui</div><p class="note">essa é a primeira compra registrada em ${escapeHtml(novaCompra.mercado)}.</p>`;
+  }
+  const ultima = anteriores[anteriores.length - 1];
+  const diff = novaCompra.total - ultima.total;
+  const media = anteriores.reduce((s, c) => s + c.total, 0) / anteriores.length;
+  let stampClass = 'neutral', stampText = 'igual ao de sempre';
+  if(diff > 0.01){ stampClass = ''; stampText = 'mais caro que da última vez'; }
+  else if(diff < -0.01){ stampClass = 'green'; stampText = 'mais barato que da última vez'; }
+  const diffAbs = fmt(Math.abs(diff));
+  return `
+    <div class="stamp ${stampClass}">${stampText}</div>
+    <p class="note">${diff > 0.01 ? '+' : diff < -0.01 ? '-' : ''}${diffAbs} em relação à última compra em ${escapeHtml(novaCompra.mercado)} (média: ${fmt(media)})</p>
+  `;
+}
+
+function renderCompareBox(){
+  if(compras.length < 2){ compareBox.style.display = 'none'; return; }
+  compareBox.style.display = 'block';
+  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
+  const mediaGeral = totalGeral / compras.length;
+  const porMercado = {};
+  compras.forEach(c => {
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
+    porMercado[c.mercado].push(c.total);
+  });
+  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
+    mercado: m,
+    media: vals.reduce((s,v)=>s+v,0)/vals.length,
+    n: vals.length
+  })).sort((a,b) => a.media - b.media);
+
+  const maisBarato = mercadoMedias[0];
+  const maisCaro = mercadoMedias[mercadoMedias.length - 1];
+
+  let html = `
+    <div class="line"><span>Total gasto (${compras.length} compras)</span><strong>${fmt(totalGeral)}</strong></div>
+    <div class="line"><span>Média por compra</span><strong>${fmt(mediaGeral)}</strong></div>
+  `;
+  if(mercadoMedias.length > 1){
+    html += `
+      <div class="line"><span>Mercado mais barato (média)</span><strong>${escapeHtml(maisBarato.mercado)} — ${fmt(maisBarato.media)}</strong></div>
+      <div class="line"><span>Mercado mais caro (média)</span><strong>${escapeHtml(maisCaro.mercado)} — ${fmt(maisCaro.media)}</strong></div>
+    `;
+  }
+  compareContent.innerHTML = html;
+}
+
+function renderHistory(){
+  if(compras.length === 0){
+    historyList.innerHTML = '<p class="empty">nenhuma compra registrada ainda.</p>';
+    return;
+  }
+  const ordenadas = compras.slice().reverse();
+  historyList.innerHTML = ordenadas.map(c => {
+    const data = new Date(c.data);
+    const dataStr = data.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    return `
+      <div class="trip" data-id="${c.id}">
+        <div class="trip-head">
+          <div>
+            <div class="mercado">${escapeHtml(c.mercado)}</div>
+            <div class="meta">${dataStr} · ${c.itens.length} ite${c.itens.length===1?'m':'ns'}</div>
+          </div>
+          <div class="total">${fmt(c.total)}</div>
+        </div>
+        <div class="trip-body">
+          <ul>
+            ${c.itens.map(it => `<li><span>${escapeHtml(it.nome)}</span><span>${fmt(it.preco)}</span></li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }).join('');
+  historyList.querySelectorAll('.trip').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('open'));
+  });
+}
+
+/* ---------- Drawer ---------- */
+const menuBtn = document.getElementById('menuBtn');
+const overlay = document.getElementById('overlay');
+const drawer = document.getElementById('drawer');
+const closeDrawer = document.getElementById('closeDrawer');
+
+function openDrawer(){ drawer.classList.add('show'); overlay.classList.add('show'); }
+function closeDrawerFn(){ drawer.classList.remove('show'); overlay.classList.remove('show'); }
+
+menuBtn.addEventListener('click', openDrawer);
+closeDrawer.addEventListener('click', closeDrawerFn);
+overlay.addEventListener('click', closeDrawerFn);
+
+/* ---------- Confirm modal (replaces native confirm, which is blocked in this sandbox) ---------- */
+const modalOverlay = document.getElementById('modalOverlay');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm = document.getElementById('modalConfirm');
+
+function askConfirmDelete(){
+  return new Promise(resolve => {
+    modalOverlay.classList.add('show');
+    const onCancel = () => { cleanup(); resolve(false); };
+    const onConfirm = () => { cleanup(); resolve(true); };
+    function cleanup(){
+      modalOverlay.classList.remove('show');
+      modalCancel.removeEventListener('click', onCancel);
+      modalConfirm.removeEventListener('click', onConfirm);
+    }
+    modalCancel.addEventListener('click', onCancel);
+    modalConfirm.addEventListener('click', onConfirm);
+  });
+}
+
+document.getElementById('resetLink').addEventListener('click', async () => {
+  const ok = await askConfirmDelete();
+  if(!ok) return;
+  compras = [];
+  await saveCompras();
+  renderHistory();
+  renderCompareBox();
+  stampArea.innerHTML = '';
+});
+
+/* ---------- Voice input: one mic fills item name AND price ---------- */
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micUnico = document.getElementById('micUnico');
+
+function capitalize(str){
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Extracts the price (last number in the phrase) and treats the rest as the item name.
+// Handles "arroz 5,80" / "arroz 5.80" / "leite 4 reais" etc.
+function parseItemAndPrice(text){
+  const cleaned = text.trim();
+  const numberRegex = /\d+(?:[.,]\d+)?/g;
+  let lastMatch = null;
+  let m;
+  while((m = numberRegex.exec(cleaned)) !== null){
+    lastMatch = m;
+  }
+  if(!lastMatch){
+    return { nome: capitalize(cleaned), preco: null };
+  }
+  const precoStr = lastMatch[0].replace(',', '.');
+  const preco = parseFloat(precoStr);
+  let nome = cleaned.slice(0, lastMatch.index).trim();
+  nome = nome.replace(/\b(reais?|r\$|por|de|a|o|,)\s*$/i, '').trim();
+  if(!nome) nome = cleaned;
+  return { nome: capitalize(nome), preco: isNaN(preco) ? null : preco };
+}
+
+if(!SpeechRecognitionAPI){
+  micUnico.disabled = true;
+  micUnico.title = 'Reconhecimento de voz não disponível neste navegador';
+  micUnico.querySelector('.dot').style.display = 'none';
+  micUnico.append(' (indisponível)');
+} else {
+  let recognizing = false;
+  micUnico.addEventListener('click', () => {
+    if(recognizing) return;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      recognizing = true;
+      micUnico.classList.add('listening');
+    };
+    recognition.onend = () => {
+      recognizing = false;
+      micUnico.classList.remove('listening');
+    };
+    recognition.onerror = () => {
+      recognizing = false;
+      micUnico.classList.remove('listening');
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const { nome, preco } = parseItemAndPrice(transcript);
+      document.getElementById('itemNome').value = nome;
+      if(preco !== null){
+        document.getElementById('itemPreco').value = preco;
+      }
+    };
+    recognition.start();
+  });
+}
+
+/* ---------- Storage ---------- */
+async function saveCompras(){
+  try{
+    await window.storage.set('compras', JSON.stringify(compras), false);
+  }catch(e){
+    console.error('Erro ao salvar:', e);
+  }
+}
+
+async function loadCompras(){
+  try{
+    const result = await window.storage.get('compras', false);
+    compras = result ? JSON.parse(result.value) : [];
+  }catch(e){
+    compras = [];
+  }
+  renderHistory();
+  renderCompareBox();
+}
+
+loadCompras();
+renderItems();
+</script>
+
+</body>
+</html>
