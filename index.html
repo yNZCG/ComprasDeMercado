@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Compras do Mês</title>
+<title>Nota de Compras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -154,7 +154,8 @@
 
   .row{ display:flex; gap:10px; margin-bottom:10px; }
   .row > div{ flex:1; }
-  .row .qty-price{ flex:0 0 110px; }
+  .row .qty-col{ flex:0 0 65px; }
+  .row .price-col{ flex:0 0 100px; }
 
   .mic-row{
     display:flex;
@@ -425,13 +426,13 @@
 <div class="receipt">
   <header>
     <p class="tagline">Feito com a intenção de economizar</p>
-    <h1 class="store-name" id="storeTitle">Compras do Mês</h1>
+    <h1 class="store-name" id="storeTitle">Compras Do Mês</h1>
   </header>
 
   <div class="row">
     <div>
       <label for="mercado">Mercado</label>
-      <input type="text" id="mercado" placeholder="Ex: Supermercado Bom Preço">
+      <input type="text" id="mercado" placeholder="Nome do Mercado">
     </div>
   </div>
 
@@ -440,9 +441,13 @@
   <div class="row">
     <div>
       <label for="itemNome">Item</label>
-      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
+      <input type="text" id="itemNome" placeholder="Ex: Arroz, Feijão, Leite">
     </div>
-    <div class="qty-price">
+    <div class="qty-col">
+      <label for="itemQtd">Qtd</label>
+      <input type="number" id="itemQtd" min="1" step="1" value="1" placeholder="1">
+    </div>
+    <div class="price-col">
       <label for="itemPreco">Preço R$</label>
       <input type="number" id="itemPreco" step="0.01" min="0" placeholder="0,00">
     </div>
@@ -451,7 +456,7 @@
   <div class="mic-row">
     <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
   </div>
-  <p class="mic-hint">diga algo como "arroz 5,80"</p>
+  <p class="mic-hint">ex: "2 pacotes de arroz 5,80"</p>
 
   <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
 
@@ -508,8 +513,8 @@ function renderItems(){
   } else {
     itemsList.innerHTML = currentItems.map((it, i) => `
       <li>
-        <span class="nome">${escapeHtml(it.nome)}</span>
-        <span class="preco">${fmt(it.preco)} <button data-i="${i}" class="btn-remove" title="remover">×</button></span>
+        <span class="nome">${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span>
+        <span class="preco">${fmt(it.totalItem)} <button data-i="${i}" class="btn-remove" title="remover">×</button></span>
       </li>
     `).join('');
     itemsList.querySelectorAll('.btn-remove').forEach(btn => {
@@ -519,30 +524,40 @@ function renderItems(){
       });
     });
   }
-  const subtotal = currentItems.reduce((s, it) => s + it.preco, 0);
+  const subtotal = currentItems.reduce((s, it) => s + it.totalItem, 0);
   subtotalValue.textContent = fmt(subtotal);
 }
 
 document.getElementById('btnAdd').addEventListener('click', () => {
   const nomeEl = document.getElementById('itemNome');
+  const qtdEl = document.getElementById('itemQtd');
   const precoEl = document.getElementById('itemPreco');
+  
   const nome = nomeEl.value.trim();
+  const qtd = parseInt(qtdEl.value) || 1;
   const preco = parseFloat(precoEl.value);
-  if(!nome || isNaN(preco) || preco < 0){
+  
+  if(!nome || isNaN(preco) || preco < 0 || qtd < 1){
     nomeEl.style.outline = !nome ? '2px solid var(--red)' : '';
+    qtdEl.style.outline = (isNaN(qtd) || qtd < 1) ? '2px solid var(--red)' : '';
     precoEl.style.outline = (isNaN(preco) || preco < 0) ? '2px solid var(--red)' : '';
     return;
   }
-  currentItems.push({ nome, preco });
+  
+  const totalItem = preco * qtd;
+  currentItems.push({ nome, qtd, precoUnitario: preco, totalItem });
+  
   nomeEl.value = '';
+  qtdEl.value = '1';
   precoEl.value = '';
   nomeEl.style.outline = '';
+  qtdEl.style.outline = '';
   precoEl.style.outline = '';
   renderItems();
   nomeEl.focus();
 });
 
-[document.getElementById('itemNome'), document.getElementById('itemPreco')].forEach(el => {
+[document.getElementById('itemNome'), document.getElementById('itemQtd'), document.getElementById('itemPreco')].forEach(el => {
   el.addEventListener('keydown', e => {
     if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAdd').click(); }
   });
@@ -561,7 +576,7 @@ document.getElementById('btnFinalizar').addEventListener('click', () => {
     return;
   }
   mercadoEl.style.outline = '';
-  const total = currentItems.reduce((s, it) => s + it.preco, 0);
+  const total = currentItems.reduce((s, it) => s + it.totalItem, 0);
   const compra = {
     id: 'compra_' + Date.now(),
     mercado,
@@ -654,7 +669,7 @@ function renderHistory(){
         </div>
         <div class="trip-body">
           <ul>
-            ${c.itens.map(it => `<li><span>${escapeHtml(it.nome)}</span><span>${fmt(it.preco)}</span></li>`).join('')}
+            ${c.itens.map(it => `<li><span>${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span><span>${fmt(it.totalItem || (it.preco * (it.qtd || 1)))}</span></li>`).join('')}
           </ul>
         </div>
       </div>
@@ -708,7 +723,7 @@ document.getElementById('resetLink').addEventListener('click', async () => {
   stampArea.innerHTML = '';
 });
 
-/* ---------- Voice input ---------- */
+/* ---------- Voice Input Avançado (Nome, Quantidade e Preço) ---------- */
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const micUnico = document.getElementById('micUnico');
 
@@ -716,23 +731,60 @@ function capitalize(str){
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function parseItemAndPrice(text){
-  const cleaned = text.trim();
+function parseVoiceInput(text){
+  let raw = text.toLowerCase().trim();
+  let qtd = 1;
+  let preco = null;
+  let nome = raw;
+
+  // 1. Mapeamento simples de números falados como palavras no início
+  const palavrasNumeros = {
+    "um": 1, "uma": 1, "dois": 2, "duas": 2, "três": 3, "tres": 3, 
+    "quatro": 4, "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10
+  };
+
+  // Verifica se o texto começa com número por palavra
+  const palavras = raw.split(' ');
+  if(palavrasNumeros[palavras[0]]){
+    qtd = palavrasNumeros[palavras[0]];
+    palavras.shift(); // remove a palavra da quantidade
+    raw = palavras.join(' ');
+  } else {
+    // 2. Extrai quantidade no início (ex: "2 pacotes", "3x", "5 unidades")
+    const matchQtd = raw.match(/^(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?\b/i);
+    if(matchQtd){
+      qtd = parseInt(matchQtd[1]);
+      raw = raw.slice(matchQtd[0].length).trim();
+    }
+  }
+
+  // 3. Extrai Preço (procura o último número do texto)
   const numberRegex = /\d+(?:[.,]\d+)?/g;
   let lastMatch = null;
   let m;
-  while((m = numberRegex.exec(cleaned)) !== null){
+  while((m = numberRegex.exec(raw)) !== null){
     lastMatch = m;
   }
-  if(!lastMatch){
-    return { nome: capitalize(cleaned), preco: null };
+
+  if(lastMatch){
+    const precoStr = lastMatch[0].replace(',', '.');
+    preco = parseFloat(precoStr);
+
+    // O nome é o trecho antes do preço
+    nome = raw.slice(0, lastMatch.index).trim();
+  } else {
+    nome = raw;
   }
-  const precoStr = lastMatch[0].replace(',', '.');
-  const preco = parseFloat(precoStr);
-  let nome = cleaned.slice(0, lastMatch.index).trim();
-  nome = nome.replace(/\b(reais?|r\$|por|de|a|o|,)\s*$/i, '').trim();
-  if(!nome) nome = cleaned;
-  return { nome: capitalize(nome), preco: isNaN(preco) ? null : preco };
+
+  // Limpeza final do Nome
+  nome = nome.replace(/\b(de|por|reais|real|r\$|custou|a|,)\s*$/gi, '').trim();
+  nome = nome.replace(/^\b(de|do|da|pacote|pacotes)\b\s*/gi, '').trim();
+
+  return { 
+    nome: capitalize(nome) || capitalize(raw), 
+    qtd: qtd > 0 ? qtd : 1, 
+    preco: (preco !== null && !isNaN(preco)) ? preco : null 
+  };
 }
 
 if(!SpeechRecognitionAPI){
@@ -763,11 +815,11 @@ if(!SpeechRecognitionAPI){
     };
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      const { nome, preco } = parseItemAndPrice(transcript);
-      document.getElementById('itemNome').value = nome;
-      if(preco !== null){
-        document.getElementById('itemPreco').value = preco;
-      }
+      const parsed = parseVoiceInput(transcript);
+      
+      if(parsed.nome) document.getElementById('itemNome').value = parsed.nome;
+      document.getElementById('itemQtd').value = parsed.qtd;
+      if(parsed.preco !== null) document.getElementById('itemPreco').value = parsed.preco;
     };
     recognition.start();
   });
@@ -826,7 +878,9 @@ document.getElementById('btnExportar').addEventListener('click', () => {
     relatorio += `Data: ${dataStr}\n`;
     relatorio += `Itens:\n`;
     c.itens.forEach(it => {
-      relatorio += `  - ${it.nome.padEnd(25, '.')} ${fmt(it.preco)}\n`;
+      const qtdStr = (it.qtd || 1) > 1 ? `${it.qtd}x ` : '';
+      const totalItem = it.totalItem || (it.preco * (it.qtd || 1));
+      relatorio += `  - ${qtdStr}${it.nome.padEnd(25, '.')} ${fmt(totalItem)}\n`;
     });
     relatorio += `TOTAL DA COMPRA: ${fmt(c.total)}\n`;
     relatorio += `-----------------------------------------\n`;
