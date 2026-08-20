@@ -53,8 +53,6 @@
     border-radius:1px;
   }
 
-  /* Drawer + overlay: anchored with top/right/bottom (not height:100%) so they
-     always span the full viewport regardless of document/body height quirks */
   .overlay{
     position:fixed;
     top:0; left:0; right:0; bottom:0;
@@ -548,7 +546,7 @@ document.getElementById('btnAdd').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btnFinalizar').addEventListener('click', async () => {
+document.getElementById('btnFinalizar').addEventListener('click', () => {
   const mercadoEl = document.getElementById('mercado');
   const mercado = mercadoEl.value.trim();
   if(!mercado){
@@ -573,7 +571,7 @@ document.getElementById('btnFinalizar').addEventListener('click', async () => {
   const comparisonHtml = buildComparison(compra);
 
   compras.push(compra);
-  await saveCompras();
+  saveCompras();
 
   stampArea.innerHTML = comparisonHtml;
   renderHistory();
@@ -678,7 +676,7 @@ menuBtn.addEventListener('click', openDrawer);
 closeDrawer.addEventListener('click', closeDrawerFn);
 overlay.addEventListener('click', closeDrawerFn);
 
-/* ---------- Confirm modal (replaces native confirm, which is blocked in this sandbox) ---------- */
+/* ---------- Confirm modal ---------- */
 const modalOverlay = document.getElementById('modalOverlay');
 const modalCancel = document.getElementById('modalCancel');
 const modalConfirm = document.getElementById('modalConfirm');
@@ -702,13 +700,13 @@ document.getElementById('resetLink').addEventListener('click', async () => {
   const ok = await askConfirmDelete();
   if(!ok) return;
   compras = [];
-  await saveCompras();
+  saveCompras();
   renderHistory();
   renderCompareBox();
   stampArea.innerHTML = '';
 });
 
-/* ---------- Voice input: one mic fills item name AND price ---------- */
+/* ---------- Voice input ---------- */
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const micUnico = document.getElementById('micUnico');
 
@@ -716,8 +714,6 @@ function capitalize(str){
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Extracts the price (last number in the phrase) and treats the rest as the item name.
-// Handles "arroz 5,80" / "arroz 5.80" / "leite 4 reais" etc.
 function parseItemAndPrice(text){
   const cleaned = text.trim();
   const numberRegex = /\d+(?:[.,]\d+)?/g;
@@ -775,20 +771,21 @@ if(!SpeechRecognitionAPI){
   });
 }
 
-/* ---------- Storage ---------- */
-async function saveCompras(){
-  try{
-    await window.storage.set('compras', JSON.stringify(compras), false);
-  }catch(e){
-    console.error('Erro ao salvar:', e);
+/* ---------- Storage Corrigido (localStorage) ---------- */
+function saveCompras(){
+  try {
+    localStorage.setItem('compras', JSON.stringify(compras));
+  } catch(e) {
+    console.error('Erro ao salvar no localStorage:', e);
   }
 }
 
-async function loadCompras(){
-  try{
-    const result = await window.storage.get('compras', false);
-    compras = result ? JSON.parse(result.value) : [];
-  }catch(e){
+function loadCompras(){
+  try {
+    const dados = localStorage.getItem('compras');
+    compras = dados ? JSON.parse(dados) : [];
+  } catch(e) {
+    console.error('Erro ao carregar do localStorage:', e);
     compras = [];
   }
   renderHistory();
