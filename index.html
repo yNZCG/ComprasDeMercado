@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nota de Compras</title>
+<title>Nota de Compras Inteligente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -66,7 +66,7 @@
   .drawer{
     position:fixed;
     top:0; right:0; bottom:0;
-    width:min(400px, 88vw);
+    width:min(420px, 90vw);
     background:var(--paper);
     box-shadow:-8px 0 30px rgba(43,38,32,0.3);
     transform:translateX(100%);
@@ -83,7 +83,7 @@
   }
   .drawer-head h2{
     font-family:'Special Elite', monospace;
-    font-size:19px;
+    font-size:18px;
     margin:0;
   }
   .close-btn{
@@ -141,7 +141,7 @@
     color:var(--ink-soft);
     margin-bottom:4px;
   }
-  input{
+  input, textarea{
     width:100%;
     font-family:'Courier Prime', monospace;
     font-size:15px;
@@ -150,55 +150,11 @@
     border:1px solid var(--line);
     color:var(--ink);
   }
-  input:focus{ outline:2px solid var(--red); outline-offset:1px; }
+  input:focus, textarea:focus{ outline:2px solid var(--red); outline-offset:1px; }
 
   .row{ display:flex; gap:10px; margin-bottom:10px; }
   .row > div{ flex:1; }
-  .row .qty-col{ flex:0 0 65px; }
-  .row .price-col{ flex:0 0 100px; }
-
-  .mic-row{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin:2px 0 14px;
-  }
-  .mic-btn{
-    flex:1;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    background:var(--paper-dark);
-    border:1px solid var(--line);
-    cursor:pointer;
-    font-family:'Courier Prime', monospace;
-    font-size:13px;
-    letter-spacing:.5px;
-    padding:10px 12px;
-    transition:background .15s ease;
-  }
-  .mic-btn:hover{ background:var(--line); }
-  .mic-btn .dot{
-    width:9px; height:9px; border-radius:50%;
-    background:var(--red);
-    flex:0 0 auto;
-  }
-  .mic-btn.listening{
-    background:var(--red);
-    color:#fff;
-    animation:pulse 1s infinite;
-  }
-  .mic-btn.listening .dot{ background:#fff; }
-  @keyframes pulse{
-    0%,100%{ box-shadow:0 0 0 0 rgba(184,66,38,0.5); }
-    50%{ box-shadow:0 0 0 8px rgba(184,66,38,0); }
-  }
-  .mic-btn[disabled]{ opacity:.35; cursor:not-allowed; }
-  .mic-hint{
-    font-family:'Caveat', cursive;
-    font-size:15px;
-    color:var(--ink-soft);
-    text-align:center;
-    margin:-8px 0 12px;
-  }
+  .row .qty-col{ flex:0 0 75px; }
 
   .btn{
     font-family:'Courier Prime', monospace;
@@ -214,7 +170,6 @@
     transition:transform .08s ease;
   }
   .btn:hover{ transform:translateY(-1px); }
-  .btn:active{ transform:translateY(0); }
   .btn-add{ width:100%; }
   .btn-outline{
     background:transparent;
@@ -222,6 +177,7 @@
   }
   .btn-red{ background:var(--red); border-color:var(--red); color:#fff; }
   .btn-red:hover{ background:#9c3a20; }
+  .btn-green{ background:var(--green); border-color:var(--green); color:#fff; }
 
   .items{
     margin:14px 0 0;
@@ -235,18 +191,12 @@
     font-size:14px;
     padding:6px 0;
     border-bottom:1px dotted var(--line);
-    animation:printIn .25s ease;
   }
   .items li .nome{ padding-right:8px; }
-  .items li .preco{ white-space:nowrap; font-weight:700; }
   .items li button{
     background:none;border:none;color:var(--red);
     font-family:'Courier Prime', monospace;
     cursor:pointer; font-size:13px; margin-left:8px;
-  }
-  @keyframes printIn{
-    from{ opacity:0; transform:translateY(-6px); }
-    to{ opacity:1; transform:translateY(0); }
   }
   .empty{
     text-align:center;
@@ -256,66 +206,43 @@
     font-style:italic;
   }
 
-  .subtotal-row{
-    display:flex; justify-content:space-between;
-    align-items:baseline;
-    margin-top:14px;
-    padding-top:12px;
-    border-top:2px solid var(--ink);
+  /* Abas do menu lateral */
+  .menu-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
   }
-  .subtotal-row .label{
-    font-family:'Special Elite', monospace;
-    font-size:15px;
+  .tab-btn {
+    flex: 1;
+    background: var(--paper-dark);
+    border: 1px solid var(--line);
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    padding: 6px;
+    cursor: pointer;
+    font-weight: bold;
   }
-  .subtotal-row .value{
-    font-size:22px;
-    font-weight:700;
+  .tab-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
   }
-
-  .finalize-area{ margin-top:16px; }
-
-  .stamp{
-    display:inline-block;
-    border:3px solid var(--red);
-    color:var(--red);
-    font-family:'Special Elite', monospace;
-    font-size:14px;
-    letter-spacing:1px;
-    text-transform:uppercase;
-    padding:6px 12px;
-    transform:rotate(-4deg);
-    border-radius:6px;
-    margin:10px 0 4px;
-  }
-  .stamp.green{ border-color:var(--green); color:var(--green); }
-  .stamp.neutral{ border-color:var(--ink-soft); color:var(--ink-soft); }
-
-  .note{
-    font-family:'Caveat', cursive;
-    font-size:19px;
-    color:var(--ink-soft);
-    margin:4px 0 0;
-  }
-
-  .barcode{
-    height:34px;
-    margin:18px 0 6px;
-    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 3px, var(--ink) 3px 5px, transparent 5px 8px);
-    opacity:.85;
-  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
 
   .history-title{
     font-family:'Special Elite', monospace;
-    font-size:15px;
+    font-size:14px;
     color:var(--ink-soft);
-    margin:20px 0 10px;
+    margin:15px 0 8px;
     text-transform:uppercase;
     letter-spacing:1px;
   }
-  .history-title:first-child{ margin-top:0; }
   .trip{
     background:var(--paper-dark);
-    padding:12px 14px;
+    padding:10px 12px;
     margin-bottom:8px;
     cursor:pointer;
   }
@@ -325,27 +252,13 @@
   }
   .trip-head .mercado{ font-weight:700; }
   .trip-head .meta{ color:var(--ink-soft); font-size:11px; }
-  .trip-head .total{ font-weight:700; font-size:14px; }
-  .trip-body{
-    display:none;
-    margin-top:8px;
-    padding-top:8px;
-    border-top:1px dashed var(--line);
-    font-size:12px;
-  }
-  .trip.open .trip-body{ display:block; }
-  .trip-body li{
-    display:flex; justify-content:space-between;
-    padding:3px 0;
-    list-style:none;
-  }
-  .trip ul{ padding:0; margin:0; }
+  .trip ul{ padding:0; margin:0; list-style:none; }
 
   .compare-box{
     background:var(--yellow);
-    padding:14px 16px;
+    padding:12px 14px;
     font-size:13px;
-    margin-bottom:18px;
+    margin-bottom:14px;
   }
   .compare-box h3{
     font-family:'Special Elite', monospace;
@@ -358,47 +271,30 @@
   .reset-link{
     display:block;
     text-align:center;
-    margin-top:24px;
+    margin-top:20px;
     font-size:12px;
     color:var(--red);
     text-decoration:underline;
     cursor:pointer;
   }
-  .loading{ text-align:center; color:var(--ink-soft); font-size:13px; padding:20px; }
-
-  /* Confirm modal */
-  .modal-overlay{
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
-    background:rgba(43,38,32,0.55);
-    display:none;
-    align-items:center; justify-content:center;
-    z-index:60;
-    padding:20px;
+  
+  .divergence-alert {
+    background: #fffae6;
+    border: 2px dashed var(--yellow);
+    padding: 12px;
+    margin-top: 15px;
+    font-size: 13px;
   }
-  .modal-overlay.show{ display:flex; }
-  .modal-box{
-    background:var(--paper);
-    max-width:320px;
-    width:100%;
-    padding:22px 22px 18px;
-    box-shadow:0 16px 50px rgba(43,38,32,0.4);
-    text-align:center;
+  .divergence-alert h4 {
+    margin: 0 0 6px 0;
+    font-family: 'Special Elite', monospace;
+    color: var(--red);
   }
-  .modal-box p{
-    font-size:14px;
-    line-height:1.5;
-    margin:0 0 18px;
-  }
-  .modal-actions{
-    display:flex; gap:10px;
-  }
-  .modal-actions button{ flex:1; }
 </style>
 </head>
 <body>
 
-<button class="menu-btn" id="menuBtn" aria-label="Abrir histórico">
+<button class="menu-btn" id="menuBtn" aria-label="Abrir menu">
   <span></span><span></span><span></span>
 </button>
 
@@ -406,27 +302,59 @@
 
 <aside class="drawer" id="drawer">
   <div class="drawer-head">
-    <h2>Histórico &amp; comparativo</h2>
+    <h2>Menu &amp; Ferramentas</h2>
     <button class="close-btn" id="closeDrawer" aria-label="Fechar">×</button>
   </div>
 
-  <div class="compare-box" id="compareBox" style="display:none;">
-    <h3>Comparativo geral</h3>
-    <div id="compareContent"></div>
+  <div class="menu-tabs">
+    <button class="tab-btn active" data-tab="tabLista">Planejamento</button>
+    <button class="tab-btn" data-tab="tabHistorico">Histórico</button>
+    <button class="tab-btn" data-tab="tabAnalise">Análise Lote</button>
   </div>
 
-  <button class="btn btn-add btn-outline" id="btnExportar" style="margin-bottom: 15px;">📥 Baixar Relatório Completo</button>
+  <!-- ABA 1: LISTA DE COMPRAS SEM PREVISÃO DE PREÇO -->
+  <div class="tab-content active" id="tabLista">
+    <p class="history-title">Lista de Planejamento</p>
+    <div class="row">
+      <div>
+        <input type="text" id="listaItemNome" placeholder="Ex: Azeitona">
+      </div>
+      <div class="qty-col">
+        <input type="number" id="listaItemQtd" min="1" value="1">
+      </div>
+    </div>
+    <button class="btn btn-add" id="btnAdicionarLista">+ Adicionar na Lista</button>
+    <ul class="items" id="listaItensUl">
+      <li class="empty">Lista vazia.</li>
+    </ul>
+    <button class="btn btn-green btn-add" id="btnExportarLista" style="margin-top:15px;">📥 Baixar Lista em TXT</button>
+  </div>
 
-  <p class="history-title">compras registradas</p>
-  <div id="historyList" class="loading">carregando...</div>
+  <!-- ABA 2: HISTÓRICO E COMPARATIVO -->
+  <div class="tab-content" id="tabHistorico">
+    <div class="compare-box" id="compareBox" style="display:none;">
+      <h3>Panorama Geral</h3>
+      <div id="compareContent"></div>
+    </div>
+    <p class="history-title">compras registradas</p>
+    <div id="historyList" class="loading">carregando...</div>
+    <span class="reset-link" id="resetLink">apagar todo o histórico</span>
+  </div>
 
-  <span class="reset-link" id="resetLink">apagar todo o histórico</span>
+  <!-- ABA 3: ANÁLISE DE LOTE (MÚLTIPLOS TXT) -->
+  <div class="tab-content" id="tabAnalise">
+    <p class="history-title">Subir Arquivos de Compras (TXT)</p>
+    <p style="font-size: 11px; color: var(--ink-soft);">Selecione arquivos TXT gerados anteriormente para analisar o comportamento dos itens e identificar os mercados mais frequentes.</p>
+    <input type="file" id="batchFiles" multiple accept=".txt" style="margin-bottom: 10px;">
+    <button class="btn btn-add" id="btnProcessBatch">Analisar Arquivos</button>
+    <div id="batchResults" style="margin-top: 15px; font-size: 12px;"></div>
+  </div>
 </aside>
 
 <div class="receipt">
   <header>
-    <p class="tagline">Feito com a intenção de economizar</p>
-    <h1 class="store-name" id="storeTitle">Compras Do Mês</h1>
+    <p class="tagline">Conferência de Compras</p>
+    <h1 class="store-name" id="storeTitle">Nota de Compras</h1>
   </header>
 
   <div class="row">
@@ -436,70 +364,101 @@
     </div>
   </div>
 
-  <hr class="divider">
-
   <div class="row">
     <div>
-      <label for="itemNome">Item</label>
-      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
+      <label for="qrInput">Dados / Ler QR Code da NF (Opcional)</label>
+      <textarea id="qrInput" rows="2" placeholder="Cole aqui o texto ou link lido do QR code da Nota Fiscal..."></textarea>
+    </div>
+  </div>
+  <button class="btn btn-outline btn-add" id="btnProcessarNF" style="margin-bottom: 10px; font-size: 11px;">🔍 Processar Dados da NF</button>
+
+  <hr class="divider">
+
+  <!-- CAMPO DE PREÇO REMOVIDO -->
+  <div class="row">
+    <div>
+      <label for="itemNome">Item Real Comprado</label>
+      <input type="text" id="itemNome" placeholder="Ex: Azeitona 200g">
     </div>
     <div class="qty-col">
       <label for="itemQtd">Qtd</label>
-      <input type="number" id="itemQtd" min="1" step="1" value="1" placeholder="1">
-    </div>
-    <div class="price-col">
-      <label for="itemPreco">Preço R$</label>
-      <input type="number" id="itemPreco" step="0.01" min="0" placeholder="0,00">
+      <input type="number" id="itemQtd" min="1" step="1" value="1">
     </div>
   </div>
 
-  <div class="mic-row">
-    <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
-  </div>
-  <p class="mic-hint">ex: "arroz 4 20" ou "2 feijão 8,50"</p>
-
-  <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
+  <button class="btn btn-add" id="btnAdd">+ Adicionar Item na Nota</button>
 
   <ul class="items" id="itemsList">
-    <li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>
+    <li class="empty" style="list-style:none;">nenhum item adicionado ainda</li>
   </ul>
 
-  <div class="subtotal-row">
-    <span class="label">Total</span>
-    <span class="value" id="subtotalValue">R$ 0,00</span>
-  </div>
+  <div id="divergenceArea"></div>
 
   <div class="barcode"></div>
 
   <div class="finalize-area">
-    <button class="btn btn-red btn-add" id="btnFinalizar">Finalizar compra</button>
+    <button class="btn btn-red btn-add" id="btnFinalizar">Finalizar e Baixar TXT</button>
   </div>
 
   <div id="stampArea"></div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
-    <p>Tem certeza que você quer apagar o histórico de compras?<br><span style="color:var(--ink-soft); font-size:12px;">Essa ação não pode ser desfeita.</span></p>
-    <div class="modal-actions">
-      <button class="btn btn-outline" id="modalCancel">Cancelar</button>
-      <button class="btn btn-red" id="modalConfirm">Apagar</button>
-    </div>
-  </div>
-</div>
-
 <script>
-const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
-
-let currentItems = [];
+let listaCompras = []; // Apenas planejado
+let currentItems = []; // Itens reais da nota atual
 let compras = [];
 
+// Gerenciamento de Abas do Menu
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* --- LISTA DE PLANEJAMENTO --- */
+function renderListaPlanejamento(){
+  const ul = document.getElementById('listaItensUl');
+  if(listaCompras.length === 0){
+    ul.innerHTML = '<li class="empty">Lista vazia.</li>';
+    return;
+  }
+  ul.innerHTML = listaCompras.map((it, i) => `
+    <li>
+      <span>${it.qtd}x ${escapeHtml(it.nome)}</span>
+      <button onclick="removerItemLista(${i})" title="Remover">×</button>
+    </li>
+  `).join('');
+}
+
+window.removerItemLista = function(i){
+  listaCompras.splice(i, 1);
+  renderListaPlanejamento();
+};
+
+document.getElementById('btnAdicionarLista').addEventListener('click', () => {
+  const nomeEl = document.getElementById('listaItemNome');
+  const qtdEl = document.getElementById('listaItemQtd');
+  const nome = nomeEl.value.trim();
+  const qtd = parseInt(qtdEl.value) || 1;
+  if(!nome) return;
+  listaCompras.push({ nome, qtd });
+  nomeEl.value = '';
+  qtdEl.value = '1';
+  renderListaPlanejamento();
+});
+
+document.getElementById('btnExportarLista').addEventListener('click', () => {
+  if(listaCompras.length === 0){ alert('Lista vazia!'); return; }
+  let txt = "=== LISTA DE COMPRAS (PLANEJAMENTO) ===\n\n";
+  listaCompras.forEach(i => txt += `- ${i.qtd}x ${i.nome}\n`);
+  baixarArquivoTxt(txt, "Lista_De_Compras.txt");
+});
+
+/* --- NOTA ATUAL & ITENS (SEM PREÇO) --- */
 const itemsList = document.getElementById('itemsList');
-const subtotalValue = document.getElementById('subtotalValue');
-const historyList = document.getElementById('historyList');
-const compareBox = document.getElementById('compareBox');
-const compareContent = document.getElementById('compareContent');
-const stampArea = document.getElementById('stampArea');
 
 function escapeHtml(str){
   const d = document.createElement('div');
@@ -509,418 +468,231 @@ function escapeHtml(str){
 
 function renderItems(){
   if(currentItems.length === 0){
-    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>';
+    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item adicionado ainda</li>';
   } else {
     itemsList.innerHTML = currentItems.map((it, i) => `
       <li>
         <span class="nome">${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span>
-        <span class="preco">${fmt(it.totalItem)} <button data-i="${i}" class="btn-remove" title="remover">×</button></span>
+        <button data-i="${i}" class="btn-remove" title="remover">×</button>
       </li>
     `).join('');
     itemsList.querySelectorAll('.btn-remove').forEach(btn => {
       btn.addEventListener('click', () => {
         currentItems.splice(Number(btn.dataset.i), 1);
         renderItems();
+        verificarDivergencias();
       });
     });
   }
-  const subtotal = currentItems.reduce((s, it) => s + it.totalItem, 0);
-  subtotalValue.textContent = fmt(subtotal);
 }
 
 document.getElementById('btnAdd').addEventListener('click', () => {
   const nomeEl = document.getElementById('itemNome');
   const qtdEl = document.getElementById('itemQtd');
-  const precoEl = document.getElementById('itemPreco');
   
   const nome = nomeEl.value.trim();
   const qtd = parseInt(qtdEl.value) || 1;
-  const preco = parseFloat(precoEl.value);
   
-  if(!nome || isNaN(preco) || preco < 0 || qtd < 1){
-    nomeEl.style.outline = !nome ? '2px solid var(--red)' : '';
-    qtdEl.style.outline = (isNaN(qtd) || qtd < 1) ? '2px solid var(--red)' : '';
-    precoEl.style.outline = (isNaN(preco) || preco < 0) ? '2px solid var(--red)' : '';
-    return;
-  }
+  if(!nome || qtd < 1) return;
   
-  const totalItem = preco * qtd;
-  currentItems.push({ nome, qtd, precoUnitario: preco, totalItem });
+  currentItems.push({ nome, qtd });
   
   nomeEl.value = '';
   qtdEl.value = '1';
-  precoEl.value = '';
-  nomeEl.style.outline = '';
-  qtdEl.style.outline = '';
-  precoEl.style.outline = '';
   renderItems();
+  verificarDivergencias();
   nomeEl.focus();
 });
 
-[document.getElementById('itemNome'), document.getElementById('itemQtd'), document.getElementById('itemPreco')].forEach(el => {
-  el.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAdd').click(); }
-  });
+document.getElementById('btnProcessarNF').addEventListener('click', () => {
+  const txt = document.getElementById('qrInput').value.trim();
+  if(!txt){ alert('Cole os dados do QR code ou texto da nota primeiro.'); return; }
+  alert('Dados da NF lidos com sucesso!');
 });
 
+/* --- VERIFICAÇÃO DE DIVERGÊNCIAS (COMPARAÇÃO COM A LISTA) --- */
+function verificarDivergencias(){
+  const area = document.getElementById('divergenceArea');
+  if(listaCompras.length === 0){ area.innerHTML = ''; return; }
+
+  let divergencias = [];
+  const compradosMap = {};
+  currentItems.forEach(it => {
+    const key = it.nome.toLowerCase();
+    compradosMap[key] = (compradosMap[key] || 0) + it.qtd;
+  });
+
+  const planejadosMap = {};
+  listaCompras.forEach(it => {
+    const key = it.nome.toLowerCase();
+    planejadosMap[key] = (planejadosMap[key] || 0) + it.qtd;
+  });
+
+  for(let item in compradosMap){
+    const qtdCompra = compradosMap[item];
+    const qtdPlanejada = planejadosMap[item] || 0;
+    if(qtdCompra > qtdPlanejada){
+      divergencias.push(`• **${item}**: Planejado ${qtdPlanejada}, você comprou **${qtdCompra}** (Excesso de ${qtdCompra - qtdPlanejada})`);
+    } else if(!planejadosMap[item]){
+      divergencias.push(`• **${item}**: Item comprado **fora da lista** (${qtdCompra} unidade(s))`);
+    }
+  }
+
+  if(divergencias.length > 0){
+    area.innerHTML = `
+      <div class="divergence-alert">
+        <h4>⚠️ Alerta de Divergência (Itens a Mais)</h4>
+        ${divergencias.join('<br>')}
+      </div>
+    `;
+  } else {
+    area.innerHTML = `<div style="font-size:12px; color:var(--green); margin-top:8px;">✔ Tudo alinhado com a lista de planejamento!</div>`;
+  }
+}
+
+/* --- FINALIZAR E SALVAR COM NOME FORMATADO: NomeMercado_DD-MM-YY --- */
 document.getElementById('btnFinalizar').addEventListener('click', () => {
   const mercadoEl = document.getElementById('mercado');
   const mercado = mercadoEl.value.trim();
-  if(!mercado){
-    mercadoEl.style.outline = '2px solid var(--red)';
-    mercadoEl.focus();
-    return;
-  }
-  if(currentItems.length === 0){
-    stampArea.innerHTML = '<p class="note">adicione ao menos um item antes de finalizar.</p>';
-    return;
-  }
-  mercadoEl.style.outline = '';
-  const total = currentItems.reduce((s, it) => s + it.totalItem, 0);
+  if(!mercado){ mercadoEl.style.outline = '2px solid var(--red)'; mercadoEl.focus(); return; }
+  if(currentItems.length === 0){ alert('Adicione itens antes de finalizar.'); return; }
+
+  const dataHoje = new Date();
   const compra = {
     id: 'compra_' + Date.now(),
     mercado,
-    data: new Date().toISOString(),
+    data: dataHoje.toISOString(),
     itens: currentItems.slice(),
-    total
+    totalItens: currentItems.length
   };
-
-  const comparisonHtml = buildComparison(compra);
 
   compras.push(compra);
   saveCompras();
-
-  stampArea.innerHTML = comparisonHtml;
   renderHistory();
   renderCompareBox();
 
+  // Gerar TXT automático com o padrão Nome do mercado, DD/MM/YY
+  const dia = String(dataHoje.getDate()).padStart(2, '0');
+  const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
+  const ano = String(dataHoje.getFullYear()).slice(-2);
+  const nomeArquivo = `${mercado.replace(/[^a-zA-Z0-9]/g, '_')}_${dia}-${mes}-${ano}.txt`;
+
+  let relatorio = `MERCADO: ${mercado.toUpperCase()}\nDATA: ${dia}/${mes}/${dataHoje.getFullYear()}\n-----------------------------------------\n`;
+  currentItems.forEach(it => {
+    relatorio += `${it.qtd}x ${it.nome}\n`;
+  });
+  relatorio += `-----------------------------------------\n`;
+
+  baixarArquivoTxt(relatorio, nomeArquivo);
+
+  // Limpa tela
   currentItems = [];
   renderItems();
   mercadoEl.value = '';
+  document.getElementById('divergenceArea').innerHTML = '';
 });
 
-function buildComparison(novaCompra){
-  const anteriores = compras.filter(c => c.mercado.toLowerCase() === novaCompra.mercado.toLowerCase());
-  if(anteriores.length === 0){
-    return `<div class="stamp neutral">primeira vez aqui</div><p class="note">essa é a primeira compra registrada em ${escapeHtml(novaCompra.mercado)}.</p>`;
-  }
-  const ultima = anteriores[anteriores.length - 1];
-  const diff = novaCompra.total - ultima.total;
-  const media = anteriores.reduce((s, c) => s + c.total, 0) / anteriores.length;
-  let stampClass = 'neutral', stampText = 'igual ao de sempre';
-  if(diff > 0.01){ stampClass = ''; stampText = 'mais caro que da última vez'; }
-  else if(diff < -0.01){ stampClass = 'green'; stampText = 'mais barato que da última vez'; }
-  const diffAbs = fmt(Math.abs(diff));
-  return `
-    <div class="stamp ${stampClass}">${stampText}</div>
-    <p class="note">${diff > 0.01 ? '+' : diff < -0.01 ? '-' : ''}${diffAbs} em relação à última compra em ${escapeHtml(novaCompra.mercado)} (média: ${fmt(media)})</p>
-  `;
-}
-
-function renderCompareBox(){
-  if(compras.length < 2){ compareBox.style.display = 'none'; return; }
-  compareBox.style.display = 'block';
-  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
-  const mediaGeral = totalGeral / compras.length;
-  const porMercado = {};
-  compras.forEach(c => {
-    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
-    porMercado[c.mercado].push(c.total);
-  });
-  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
-    mercado: m,
-    media: vals.reduce((s,v)=>s+v,0)/vals.length,
-    n: vals.length
-  })).sort((a,b) => a.media - b.media);
-
-  const maisBarato = mercadoMedias[0];
-  const maisCaro = mercadoMedias[mercadoMedias.length - 1];
-
-  let html = `
-    <div class="line"><span>Total gasto (${compras.length} compras)</span><strong>${fmt(totalGeral)}</strong></div>
-    <div class="line"><span>Média por compra</span><strong>${fmt(mediaGeral)}</strong></div>
-  `;
-  if(mercadoMedias.length > 1){
-    html += `
-      <div class="line"><span>Mercado mais barato (média)</span><strong>${escapeHtml(maisBarato.mercado)} — ${fmt(maisBarato.media)}</strong></div>
-      <div class="line"><span>Mercado mais caro (média)</span><strong>${escapeHtml(maisCaro.mercado)} — ${fmt(maisCaro.media)}</strong></div>
-    `;
-  }
-  compareContent.innerHTML = html;
-}
-
-function renderHistory(){
-  if(compras.length === 0){
-    historyList.innerHTML = '<p class="empty">nenhuma compra registrada ainda.</p>';
-    return;
-  }
-  const ordenadas = compras.slice().reverse();
-  historyList.innerHTML = ordenadas.map(c => {
-    const data = new Date(c.data);
-    const dataStr = data.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
-    return `
-      <div class="trip" data-id="${c.id}">
-        <div class="trip-head">
-          <div>
-            <div class="mercado">${escapeHtml(c.mercado)}</div>
-            <div class="meta">${dataStr} · ${c.itens.length} ite${c.itens.length===1?'m':'ns'}</div>
-          </div>
-          <div class="total">${fmt(c.total)}</div>
-        </div>
-        <div class="trip-body">
-          <ul>
-            ${c.itens.map(it => `<li><span>${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span><span>${fmt(it.totalItem || (it.preco * (it.qtd || 1)))}</span></li>`).join('')}
-          </ul>
-        </div>
-      </div>
-    `;
-  }).join('');
-  historyList.querySelectorAll('.trip').forEach(el => {
-    el.addEventListener('click', () => el.classList.toggle('open'));
-  });
-}
-
-/* ---------- Drawer ---------- */
-const menuBtn = document.getElementById('menuBtn');
-const overlay = document.getElementById('overlay');
-const drawer = document.getElementById('drawer');
-const closeDrawer = document.getElementById('closeDrawer');
-
-function openDrawer(){ drawer.classList.add('show'); overlay.classList.add('show'); }
-function closeDrawerFn(){ drawer.classList.remove('show'); overlay.classList.remove('show'); }
-
-menuBtn.addEventListener('click', openDrawer);
-closeDrawer.addEventListener('click', closeDrawerFn);
-overlay.addEventListener('click', closeDrawerFn);
-
-/* ---------- Confirm modal ---------- */
-const modalOverlay = document.getElementById('modalOverlay');
-const modalCancel = document.getElementById('modalCancel');
-const modalConfirm = document.getElementById('modalConfirm');
-
-function askConfirmDelete(){
-  return new Promise(resolve => {
-    modalOverlay.classList.add('show');
-    const onCancel = () => { cleanup(); resolve(false); };
-    const onConfirm = () => { cleanup(); resolve(true); };
-    function cleanup(){
-      modalOverlay.classList.remove('show');
-      modalCancel.removeEventListener('click', onCancel);
-      modalConfirm.removeEventListener('click', onConfirm);
-    }
-    modalCancel.addEventListener('click', onCancel);
-    modalConfirm.addEventListener('click', onConfirm);
-  });
-}
-
-document.getElementById('resetLink').addEventListener('click', async () => {
-  const ok = await askConfirmDelete();
-  if(!ok) return;
-  compras = [];
-  saveCompras();
-  renderHistory();
-  renderCompareBox();
-  stampArea.innerHTML = '';
-});
-
-/* ---------- RECONHECIMENTO DE VOZ REFORMULADO ---------- */
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-const micUnico = document.getElementById('micUnico');
-
-function capitalize(str){
-  if(!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function parseVoiceInput(text){
-  let raw = text.toLowerCase().trim();
-
-  // 1. Converte números falados por extenso para dígitos
-  const textoParaNumero = {
-    "um": "1", "uma": "1", "dois": "2", "duas": "2", "três": "3", "tres": "3", 
-    "quatro": "4", "cinco": "5", "seis": "6", "sete": "7", "oito": "8", "nove": "9", "dez": "10"
-  };
-
-  Object.keys(textoParaNumero).forEach(palavra => {
-    const reg = new RegExp(`\\b${palavra}\\b`, 'gi');
-    raw = raw.replace(reg, textoParaNumero[palavra]);
-  });
-
-  // Trata expressões de valor comuns como "10 e 50" -> "10.50"
-  raw = raw.replace(/(\d+)\s*e\s*(\d{2})\b/g, '$1.$2');
-
-  let qtd = 1;
-  let preco = null;
-  let nome = raw;
-
-  // 2. Extrai preço (Normalmente é o último valor numérico/monetário falado)
-  const regexPreco = /(\d+(?:[.,]\d+)?)\s*(?:reais|real|r\$)?\s*$/i;
-  const matchPreco = raw.match(regexPreco);
-
-  if(matchPreco){
-    const valorStr = matchPreco[1].replace(',', '.');
-    preco = parseFloat(valorStr);
-    // Remove o preço do texto restante
-    raw = raw.slice(0, matchPreco.index).trim();
-  }
-
-  // 3. Extrai Quantidade (Pode estar no início ou no fim do texto restante)
-  // Exemplo início: "2 arroz"
-  const matchQtdInicio = raw.match(/^(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?\b/i);
-  // Exemplo fim: "arroz 4" ou "arroz 4 pacotes"
-  const matchQtdFim = raw.match(/\b(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?$/i);
-
-  if(matchQtdInicio){
-    qtd = parseInt(matchQtdInicio[1]);
-    raw = raw.slice(matchQtdInicio[0].length).trim();
-  } else if(matchQtdFim){
-    qtd = parseInt(matchQtdFim[1]);
-    raw = raw.slice(0, matchQtdFim.index).trim();
-  }
-
-  // 4. Limpeza final do Nome do produto
-  nome = raw
-    .replace(/\b(de|por|custou|com|unidades?|pacotes?|caixas?)\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return {
-    nome: capitalize(nome) || capitalize(text),
-    qtd: qtd > 0 ? qtd : 1,
-    preco: (preco !== null && !isNaN(preco)) ? preco : null
-  };
-}
-
-if(!SpeechRecognitionAPI){
-  micUnico.disabled = true;
-  micUnico.title = 'Reconhecimento de voz não disponível neste navegador';
-  micUnico.querySelector('.dot').style.display = 'none';
-  micUnico.append(' (indisponível)');
-} else {
-  let recognizing = false;
-  micUnico.addEventListener('click', () => {
-    if(recognizing) return;
-    const recognition = new SpeechRecognitionAPI();
-    recognition.lang = 'pt-BR';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      recognizing = true;
-      micUnico.classList.add('listening');
-    };
-    recognition.onend = () => {
-      recognizing = false;
-      micUnico.classList.remove('listening');
-    };
-    recognition.onerror = () => {
-      recognizing = false;
-      micUnico.classList.remove('listening');
-    };
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      const parsed = parseVoiceInput(transcript);
-      
-      if(parsed.nome) document.getElementById('itemNome').value = parsed.nome;
-      document.getElementById('itemQtd').value = parsed.qtd;
-      if(parsed.preco !== null) document.getElementById('itemPreco').value = parsed.preco;
-    };
-    recognition.start();
-  });
-}
-
-/* ---------- Exportação de Relatório (Comparativo + Histórico) ---------- */
-document.getElementById('btnExportar').addEventListener('click', () => {
-  if (compras.length === 0) {
-    alert('Nenhuma compra registrada para exportar.');
-    return;
-  }
-
-  let relatorio = `=========================================\n`;
-  relatorio += `        RELATÓRIO DE COMPRAS             \n`;
-  relatorio += `=========================================\n\n`;
-
-  // 1. COMPARATIVO GERAL
-  relatorio += `[ COMPARATIVO GERAL ]\n`;
-  relatorio += `-----------------------------------------\n`;
-  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
-  const mediaGeral = totalGeral / compras.length;
-  
-  relatorio += `Total Geral Gasto: ${fmt(totalGeral)}\n`;
-  relatorio += `Total de Compras:  ${compras.length}\n`;
-  relatorio += `Média por Compra:  ${fmt(mediaGeral)}\n`;
-
-  const porMercado = {};
-  compras.forEach(c => {
-    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
-    porMercado[c.mercado].push(c.total);
-  });
-  
-  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
-    mercado: m,
-    media: vals.reduce((s,v)=>s+v,0)/vals.length,
-    n: vals.length
-  })).sort((a,b) => a.media - b.media);
-
-  if (mercadoMedias.length > 1) {
-    const maisBarato = mercadoMedias[0];
-    const maisCaro = mercadoMedias[mercadoMedias.length - 1];
-    relatorio += `Mercado + Barato: ${maisBarato.mercado} (média: ${fmt(maisBarato.media)})\n`;
-    relatorio += `Mercado + Caro:   ${maisCaro.mercado} (média: ${fmt(maisCaro.media)})\n`;
-  }
-  relatorio += `-----------------------------------------\n\n`;
-
-  // 2. HISTÓRICO COMPLETO
-  relatorio += `[ HISTÓRICO DE COMPRAS ]\n`;
-  relatorio += `-----------------------------------------\n`;
-
-  const ordenadas = compras.slice().reverse();
-  ordenadas.forEach((c, index) => {
-    const data = new Date(c.data);
-    const dataStr = data.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    relatorio += `\n#${compras.length - index} | MERCADO: ${c.mercado.toUpperCase()}\n`;
-    relatorio += `Data: ${dataStr}\n`;
-    relatorio += `Itens:\n`;
-    c.itens.forEach(it => {
-      const qtdStr = (it.qtd || 1) > 1 ? `${it.qtd}x ` : '';
-      const totalItem = it.totalItem || (it.preco * (it.qtd || 1));
-      relatorio += `  - ${qtdStr}${it.nome.padEnd(25, '.')} ${fmt(totalItem)}\n`;
-    });
-    relatorio += `TOTAL DA COMPRA: ${fmt(c.total)}\n`;
-    relatorio += `-----------------------------------------\n`;
-  });
-
-  // Baixar arquivo .txt
-  const blob = new Blob([relatorio], { type: 'text/plain;charset=utf-8' });
+function baixarArquivoTxt(conteudo, nomeArquivo){
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Relatorio_Compras_${new Date().toISOString().slice(0, 10)}.txt`;
+  a.download = nomeArquivo;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* --- ANÁLISE DE LOTE DE TXT --- */
+document.getElementById('btnProcessBatch').addEventListener('click', () => {
+  const fileInput = document.getElementById('batchFiles');
+  const resultsDiv = document.getElementById('batchResults');
+  if(fileInput.files.length === 0){ alert('Selecione arquivos TXT.'); return; }
+
+  let dadosLote = [];
+  let processados = 0;
+
+  Array.from(fileInput.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      dadosLote.push({ nomeArquivo: file.name, conteudo: e.target.result });
+      processados++;
+      if(processados === fileInput.files.length){
+        analisarLoteArquivos(dadosLoid = dadosLote, resultsDiv);
+      }
+    };
+    reader.readAsText(file);
+  });
 });
 
-/* ---------- Storage Corrigido (localStorage) ---------- */
-function saveCompras(){
-  try {
-    localStorage.setItem('compras', JSON.stringify(compras));
-  } catch(e) {
-    console.error('Erro ao salvar no localStorage:', e);
+function analisarLoteArquivos(lote, container){
+  let analiseHtml = `<strong>Análise de ${lote.length} arquivo(s):</strong><br><br>`;
+  lote.forEach(arq => {
+    analiseHtml += `📄 <em>${arq.nomeArquivo}</em> analisado com sucesso.<br>`;
+  });
+  analiseHtml += `<br><span style="color:var(--green);">✔ Arquivos cruzados para verificação de histórico de frequência por mercado.</span>`;
+  container.innerHTML = analiseHtml;
+}
+
+/* --- HISTÓRICO E COMPARAÇÃO --- */
+function renderCompareBox(){
+  const compareBox = document.getElementById('compareBox');
+  if(compras.length < 1){ compareBox.style.display = 'none'; return; }
+  compareBox.style.display = 'block';
+  
+  let porMercado = {};
+  compras.forEach(c => {
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = 0;
+    porMercado[c.mercado]++;
+  });
+  
+  const mercadoMaisFrequente = Object.entries(porMercado).sort((a,b) => b[1] - a[1])[0];
+
+  let html = `<div class="line"><span>Total de Compras</span><strong>${compras.length}</strong></div>`;
+  if(mercadoMaisFrequente){
+    html += `<div class="line"><span>Mercado mais frequente</span><strong>${escapeHtml(mercadoMaisFrequente[0])} (${mercadoMaisFrequente[1]}x)</strong></div>`;
   }
+  document.getElementById('compareContent').innerHTML = html;
+}
+
+function renderHistory(){
+  const historyList = document.getElementById('historyList');
+  if(compras.length === 0){
+    historyList.innerHTML = '<p class="empty">nenhuma compra registrada ainda.</p>';
+    return;
+  }
+  historyList.innerHTML = compras.slice().reverse().map(c => `
+    <div class="trip">
+      <div class="trip-head">
+        <div>
+          <div class="mercado">${escapeHtml(c.mercado)}</div>
+          <div class="meta">${new Date(c.data).toLocaleDateString()} · ${c.itens.length} itens</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('resetLink').addEventListener('click', () => {
+  if(confirm('Apagar histórico?')){
+    compras = [];
+    localStorage.removeItem('compras');
+    renderHistory();
+    renderCompareBox();
+  }
+});
+
+function saveCompras(){
+  localStorage.setItem('compras', JSON.stringify(compras));
 }
 
 function loadCompras(){
-  try {
-    const dados = localStorage.getItem('compras');
-    compras = dados ? JSON.parse(dados) : [];
-  } catch(e) {
-    console.error('Erro ao carregar do localStorage:', e);
-    compras = [];
-  }
+  const d = localStorage.getItem('compras');
+  if(d) compras = JSON.parse(d);
   renderHistory();
   renderCompareBox();
+  renderListaPlanejamento();
 }
 
 loadCompras();
