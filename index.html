@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nota de Compras Inteligente</title>
+<title>Nota de Compras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -66,7 +66,7 @@
   .drawer{
     position:fixed;
     top:0; right:0; bottom:0;
-    width:min(420px, 90vw);
+    width:min(400px, 88vw);
     background:var(--paper);
     box-shadow:-8px 0 30px rgba(43,38,32,0.3);
     transform:translateX(100%);
@@ -83,7 +83,7 @@
   }
   .drawer-head h2{
     font-family:'Special Elite', monospace;
-    font-size:18px;
+    font-size:19px;
     margin:0;
   }
   .close-btn{
@@ -93,6 +93,27 @@
     color:var(--ink-soft);
     line-height:1;
   }
+
+  /* Tabs dentro do menu lateral */
+  .tabs{ display:flex; gap:6px; margin-bottom:16px; }
+  .tab-btn{
+    flex:1;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    padding:9px 4px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .tab-btn.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .tab-panel{ animation:printIn .2s ease; }
 
   .receipt{
     max-width:440px;
@@ -141,7 +162,7 @@
     color:var(--ink-soft);
     margin-bottom:4px;
   }
-  input, textarea{
+  input, select, textarea{
     width:100%;
     font-family:'Courier Prime', monospace;
     font-size:15px;
@@ -150,11 +171,64 @@
     border:1px solid var(--line);
     color:var(--ink);
   }
-  input:focus, textarea:focus{ outline:2px solid var(--red); outline-offset:1px; }
+  select{ font-size:14px; }
+  textarea{ font-size:12px; resize:vertical; }
+  input[type=file]{
+    font-size:12px;
+    padding:6px 0;
+    background:transparent;
+    border:none;
+    color:var(--ink-soft);
+  }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--red); outline-offset:1px; }
 
   .row{ display:flex; gap:10px; margin-bottom:10px; }
   .row > div{ flex:1; }
-  .row .qty-col{ flex:0 0 75px; }
+  .row .qty-col{ flex:0 0 65px; }
+  .row .price-col{ flex:0 0 100px; }
+
+  .mic-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:2px 0 14px;
+  }
+  .mic-btn{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    cursor:pointer;
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    letter-spacing:.5px;
+    padding:10px 12px;
+    transition:background .15s ease;
+  }
+  .mic-btn:hover{ background:var(--line); }
+  .mic-btn .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--red);
+    flex:0 0 auto;
+  }
+  .mic-btn.listening{
+    background:var(--red);
+    color:#fff;
+    animation:pulse 1s infinite;
+  }
+  .mic-btn.listening .dot{ background:#fff; }
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(184,66,38,0.5); }
+    50%{ box-shadow:0 0 0 8px rgba(184,66,38,0); }
+  }
+  .mic-btn[disabled]{ opacity:.35; cursor:not-allowed; }
+  .mic-hint{
+    font-family:'Caveat', cursive;
+    font-size:15px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:-8px 0 12px;
+  }
 
   .btn{
     font-family:'Courier Prime', monospace;
@@ -170,6 +244,7 @@
     transition:transform .08s ease;
   }
   .btn:hover{ transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0); }
   .btn-add{ width:100%; }
   .btn-outline{
     background:transparent;
@@ -177,7 +252,6 @@
   }
   .btn-red{ background:var(--red); border-color:var(--red); color:#fff; }
   .btn-red:hover{ background:#9c3a20; }
-  .btn-green{ background:var(--green); border-color:var(--green); color:#fff; }
 
   .items{
     margin:14px 0 0;
@@ -191,12 +265,18 @@
     font-size:14px;
     padding:6px 0;
     border-bottom:1px dotted var(--line);
+    animation:printIn .25s ease;
   }
   .items li .nome{ padding-right:8px; }
+  .items li .preco{ white-space:nowrap; font-weight:700; }
   .items li button{
     background:none;border:none;color:var(--red);
     font-family:'Courier Prime', monospace;
     cursor:pointer; font-size:13px; margin-left:8px;
+  }
+  @keyframes printIn{
+    from{ opacity:0; transform:translateY(-6px); }
+    to{ opacity:1; transform:translateY(0); }
   }
   .empty{
     text-align:center;
@@ -206,43 +286,72 @@
     font-style:italic;
   }
 
-  /* Abas do menu lateral */
-  .menu-tabs {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 8px;
+  .subtotal-row{
+    display:flex; justify-content:space-between;
+    align-items:baseline;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:2px solid var(--ink);
   }
-  .tab-btn {
-    flex: 1;
-    background: var(--paper-dark);
-    border: 1px solid var(--line);
-    font-family: 'Courier Prime', monospace;
-    font-size: 12px;
-    padding: 6px;
-    cursor: pointer;
-    font-weight: bold;
+  .subtotal-row .label{
+    font-family:'Special Elite', monospace;
+    font-size:15px;
   }
-  .tab-btn.active {
-    background: var(--ink);
-    color: var(--paper);
-    border-color: var(--ink);
+  .subtotal-row .value{
+    font-size:22px;
+    font-weight:700;
   }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
+
+  .finalize-area{ margin-top:16px; }
+
+  .stamp{
+    display:inline-block;
+    border:3px solid var(--red);
+    color:var(--red);
+    font-family:'Special Elite', monospace;
+    font-size:14px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:6px 12px;
+    transform:rotate(-4deg);
+    border-radius:6px;
+    margin:10px 0 4px;
+  }
+  .stamp.green{ border-color:var(--green); color:var(--green); }
+  .stamp.neutral{ border-color:var(--ink-soft); color:var(--ink-soft); }
+
+  .note{
+    font-family:'Caveat', cursive;
+    font-size:19px;
+    color:var(--ink-soft);
+    margin:4px 0 0;
+  }
+  .note-small{
+    font-size:11px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin:6px 0;
+  }
+
+  .barcode{
+    height:34px;
+    margin:18px 0 6px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 3px, var(--ink) 3px 5px, transparent 5px 8px);
+    opacity:.85;
+  }
 
   .history-title{
     font-family:'Special Elite', monospace;
-    font-size:14px;
+    font-size:15px;
     color:var(--ink-soft);
-    margin:15px 0 8px;
+    margin:20px 0 10px;
     text-transform:uppercase;
     letter-spacing:1px;
   }
+  .history-title:first-child{ margin-top:0; }
   .trip{
     background:var(--paper-dark);
-    padding:10px 12px;
+    padding:12px 14px;
     margin-bottom:8px;
     cursor:pointer;
   }
@@ -252,13 +361,27 @@
   }
   .trip-head .mercado{ font-weight:700; }
   .trip-head .meta{ color:var(--ink-soft); font-size:11px; }
-  .trip ul{ padding:0; margin:0; list-style:none; }
+  .trip-head .total{ font-weight:700; font-size:14px; }
+  .trip-body{
+    display:none;
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--line);
+    font-size:12px;
+  }
+  .trip.open .trip-body{ display:block; }
+  .trip-body li{
+    display:flex; justify-content:space-between;
+    padding:3px 0;
+    list-style:none;
+  }
+  .trip ul{ padding:0; margin:0; }
 
   .compare-box{
     background:var(--yellow);
-    padding:12px 14px;
+    padding:14px 16px;
     font-size:13px;
-    margin-bottom:14px;
+    margin-bottom:18px;
   }
   .compare-box h3{
     font-family:'Special Elite', monospace;
@@ -267,29 +390,69 @@
     text-transform:uppercase;
   }
   .compare-box .line{ display:flex; justify-content:space-between; padding:2px 0; }
+  .compare-box ul{ margin:0 0 6px 18px; padding:0; }
+  .compare-box p{ margin:0; }
+
+  .preco-lista{ list-style:none; padding:0; margin:0 0 10px; font-size:12px; }
+  .preco-lista li{ padding:3px 0; border-bottom:1px dotted var(--line); }
+  .preco-lista li.subiu{ color:var(--red); }
+  .preco-lista li.desceu{ color:var(--green); }
+  .ranking-lista{ font-size:12px; padding-left:18px; margin:0 0 14px; }
+  #resultadoPrecos h3{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    text-transform:uppercase;
+    margin:16px 0 8px;
+  }
+  #resultadoPrecos h4{
+    font-size:12px;
+    margin:12px 0 4px;
+    text-decoration:underline;
+  }
 
   .reset-link{
     display:block;
     text-align:center;
-    margin-top:20px;
+    margin-top:24px;
     font-size:12px;
     color:var(--red);
     text-decoration:underline;
     cursor:pointer;
   }
-  
-  .divergence-alert {
-    background: #fffae6;
-    border: 2px dashed var(--yellow);
-    padding: 12px;
-    margin-top: 15px;
-    font-size: 13px;
+  .loading{ text-align:center; color:var(--ink-soft); font-size:13px; padding:20px; }
+
+  /* Confirm / QR modal */
+  .modal-overlay{
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(43,38,32,0.55);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:60;
+    padding:20px;
   }
-  .divergence-alert h4 {
-    margin: 0 0 6px 0;
-    font-family: 'Special Elite', monospace;
-    color: var(--red);
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--paper);
+    max-width:320px;
+    width:100%;
+    padding:22px 22px 18px;
+    box-shadow:0 16px 50px rgba(43,38,32,0.4);
+    text-align:center;
+    max-height:90vh;
+    overflow-y:auto;
   }
+  .modal-box.wide{ max-width:400px; text-align:left; }
+  .modal-box p{
+    font-size:14px;
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+  .modal-actions{
+    display:flex; gap:10px;
+  }
+  .modal-actions button{ flex:1; }
+  #qrVideo{ width:100%; max-height:220px; object-fit:cover; background:#000; display:block; }
 </style>
 </head>
 <body>
@@ -302,59 +465,67 @@
 
 <aside class="drawer" id="drawer">
   <div class="drawer-head">
-    <h2>Menu &amp; Ferramentas</h2>
+    <h2>Menu</h2>
     <button class="close-btn" id="closeDrawer" aria-label="Fechar">×</button>
   </div>
 
-  <div class="menu-tabs">
-    <button class="tab-btn active" data-tab="tabLista">Planejamento</button>
-    <button class="tab-btn" data-tab="tabHistorico">Histórico</button>
-    <button class="tab-btn" data-tab="tabAnalise">Análise Lote</button>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="historico">Histórico</button>
+    <button class="tab-btn" data-tab="listas">Lista</button>
+    <button class="tab-btn" data-tab="precos">Preços</button>
   </div>
 
-  <!-- ABA 1: LISTA DE COMPRAS SEM PREVISÃO DE PREÇO -->
-  <div class="tab-content active" id="tabLista">
-    <p class="history-title">Lista de Planejamento</p>
-    <div class="row">
-      <div>
-        <input type="text" id="listaItemNome" placeholder="Ex: Azeitona">
-      </div>
-      <div class="qty-col">
-        <input type="number" id="listaItemQtd" min="1" value="1">
-      </div>
-    </div>
-    <button class="btn btn-add" id="btnAdicionarLista">+ Adicionar na Lista</button>
-    <ul class="items" id="listaItensUl">
-      <li class="empty">Lista vazia.</li>
-    </ul>
-    <button class="btn btn-green btn-add" id="btnExportarLista" style="margin-top:15px;">📥 Baixar Lista em TXT</button>
-  </div>
-
-  <!-- ABA 2: HISTÓRICO E COMPARATIVO -->
-  <div class="tab-content" id="tabHistorico">
+  <div class="tab-panel" id="panel-historico">
     <div class="compare-box" id="compareBox" style="display:none;">
-      <h3>Panorama Geral</h3>
+      <h3>Comparativo geral</h3>
       <div id="compareContent"></div>
     </div>
+
+    <button class="btn btn-add btn-outline" id="btnExportar" style="margin-bottom: 15px;">📥 Baixar Relatório Completo</button>
+
     <p class="history-title">compras registradas</p>
     <div id="historyList" class="loading">carregando...</div>
+
     <span class="reset-link" id="resetLink">apagar todo o histórico</span>
   </div>
 
-  <!-- ABA 3: ANÁLISE DE LOTE (MÚLTIPLOS TXT) -->
-  <div class="tab-content" id="tabAnalise">
-    <p class="history-title">Subir Arquivos de Compras (TXT)</p>
-    <p style="font-size: 11px; color: var(--ink-soft);">Selecione arquivos TXT gerados anteriormente para analisar o comportamento dos itens e identificar os mercados mais frequentes.</p>
-    <input type="file" id="batchFiles" multiple accept=".txt" style="margin-bottom: 10px;">
-    <button class="btn btn-add" id="btnProcessBatch">Analisar Arquivos</button>
-    <div id="batchResults" style="margin-top: 15px; font-size: 12px;"></div>
+  <div class="tab-panel" id="panel-listas" style="display:none;">
+    <p class="history-title" style="margin-top:0;">nova lista / editar</p>
+    <div class="row">
+      <div><label for="listaNome">Nome da lista</label><input id="listaNome" placeholder="Ex: Compras da semana"></div>
+    </div>
+    <div class="row">
+      <div><label for="listaItemNome">Item</label><input id="listaItemNome" placeholder="Ex: Azeitona"></div>
+      <div class="qty-col"><label for="listaItemQtd">Qtd</label><input type="number" id="listaItemQtd" min="1" step="1" value="1"></div>
+    </div>
+    <button class="btn btn-add" id="btnAddItemLista">+ Adicionar à lista</button>
+
+    <ul class="items" id="listaItensAtual">
+      <li class="empty" style="list-style:none;">nenhum item ainda</li>
+    </ul>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="btn btn-outline" id="btnSalvarLista" style="flex:1;">💾 Salvar</button>
+      <button class="btn btn-outline" id="btnBaixarLista" style="flex:1;">📥 Baixar .txt</button>
+    </div>
+
+    <p class="history-title">listas salvas</p>
+    <div id="listasSalvas" class="loading">carregando...</div>
+  </div>
+
+  <div class="tab-panel" id="panel-precos" style="display:none;">
+    <p class="history-title" style="margin-top:0;">comparar preços entre mercados</p>
+    <p class="note-small">Envie vários arquivos .txt exportados por este app (comprovante de compra ou relatório completo) para ver o que subiu, o que baixou, e qual mercado ficou mais barato.</p>
+    <input type="file" id="inputArquivosPrecos" multiple accept=".txt">
+    <button class="btn btn-add" id="btnAnalisarArquivos" style="margin-top:8px;">Analisar arquivos</button>
+    <div id="resultadoPrecos" style="margin-top:16px;"></div>
   </div>
 </aside>
 
 <div class="receipt">
   <header>
-    <p class="tagline">Conferência de Compras</p>
-    <h1 class="store-name" id="storeTitle">Nota de Compras</h1>
+    <p class="tagline">Feito com a intenção de economizar</p>
+    <h1 class="store-name" id="storeTitle">Compras Do Mês</h1>
   </header>
 
   <div class="row">
@@ -364,235 +535,255 @@
     </div>
   </div>
 
-  <div class="row">
-    <div>
-      <label for="qrInput">Dados / Ler QR Code da NF (Opcional)</label>
-      <textarea id="qrInput" rows="2" placeholder="Cole aqui o texto ou link lido do QR code da Nota Fiscal..."></textarea>
-    </div>
-  </div>
-  <button class="btn btn-outline btn-add" id="btnProcessarNF" style="margin-bottom: 10px; font-size: 11px;">🔍 Processar Dados da NF</button>
-
   <hr class="divider">
 
-  <!-- CAMPO DE PREÇO REMOVIDO -->
   <div class="row">
     <div>
-      <label for="itemNome">Item Real Comprado</label>
-      <input type="text" id="itemNome" placeholder="Ex: Azeitona 200g">
+      <label for="itemNome">Item</label>
+      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
     </div>
     <div class="qty-col">
       <label for="itemQtd">Qtd</label>
-      <input type="number" id="itemQtd" min="1" step="1" value="1">
+      <input type="number" id="itemQtd" min="1" step="1" value="1" placeholder="1">
+    </div>
+    <div class="price-col">
+      <label for="itemPreco">Preço R$</label>
+      <input type="number" id="itemPreco" step="0.01" min="0" placeholder="0,00">
     </div>
   </div>
 
-  <button class="btn btn-add" id="btnAdd">+ Adicionar Item na Nota</button>
+  <div class="mic-row">
+    <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
+  </div>
+  <p class="mic-hint">ex: "arroz 4 20" ou "2 feijão 8,50"</p>
+
+  <button type="button" class="mic-btn" id="btnAbrirQR" style="margin-bottom:14px;">📷 Ler QR Code da nota fiscal</button>
+
+  <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
 
   <ul class="items" id="itemsList">
-    <li class="empty" style="list-style:none;">nenhum item adicionado ainda</li>
+    <li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>
   </ul>
 
-  <div id="divergenceArea"></div>
+  <div class="subtotal-row">
+    <span class="label">Total</span>
+    <span class="value" id="subtotalValue">R$ 0,00</span>
+  </div>
 
   <div class="barcode"></div>
 
+  <div class="row" style="margin-top:6px;">
+    <div>
+      <label for="listaComparar">Comparar com lista de compras (opcional)</label>
+      <select id="listaComparar"><option value="">Nenhuma lista (não comparar)</option></select>
+    </div>
+  </div>
+
   <div class="finalize-area">
-    <button class="btn btn-red btn-add" id="btnFinalizar">Finalizar e Baixar TXT</button>
+    <button class="btn btn-red btn-add" id="btnFinalizar">Finalizar compra</button>
   </div>
 
   <div id="stampArea"></div>
 </div>
 
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <p>Tem certeza que você quer apagar o histórico de compras?<br><span style="color:var(--ink-soft); font-size:12px;">Essa ação não pode ser desfeita.</span></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modalCancel">Cancelar</button>
+      <button class="btn btn-red" id="modalConfirm">Apagar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="qrModalOverlay">
+  <div class="modal-box wide">
+    <div class="drawer-head" style="margin-bottom:10px;">
+      <h2 style="font-size:16px;">Ler nota fiscal</h2>
+      <button class="close-btn" id="closeQrModal">×</button>
+    </div>
+    <video id="qrVideo" muted playsinline></video>
+    <canvas id="qrCanvas" style="display:none;"></canvas>
+    <div id="qrResultado" style="font-size:13px;"></div>
+    <hr class="divider">
+    <label for="textoNotaColado">Ou cole aqui o texto da nota fiscal</label>
+    <textarea id="textoNotaColado" rows="5" placeholder="Copie o conteúdo da página da nota (Sefaz) e cole aqui"></textarea>
+    <button class="btn btn-add" id="btnImportarTexto" style="margin-top:8px;">Importar itens do texto</button>
+    <p class="note-small">O QR Code só contém o link da nota, não a lista de produtos — por isso é preciso abrir o link e colar o texto para importar os itens automaticamente. O reconhecimento é uma tentativa automática; revise nome, quantidade e preço antes de finalizar.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
 <script>
-let listaCompras = []; // Apenas planejado
-let currentItems = []; // Itens reais da nota atual
+const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+const parseValorBR = str => parseFloat(String(str).replace(/[^\d,.-]/g,'').replace(',', '.')) || 0;
+
+let currentItems = [];
 let compras = [];
+let listasCompra = [];
+let listaAtualItens = [];
+let listaEmEdicaoId = null;
+let ultimaCompraFinalizada = null;
 
-// Gerenciamento de Abas do Menu
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(btn.dataset.tab).classList.add('active');
-  });
-});
-
-/* --- LISTA DE PLANEJAMENTO --- */
-function renderListaPlanejamento(){
-  const ul = document.getElementById('listaItensUl');
-  if(listaCompras.length === 0){
-    ul.innerHTML = '<li class="empty">Lista vazia.</li>';
-    return;
-  }
-  ul.innerHTML = listaCompras.map((it, i) => `
-    <li>
-      <span>${it.qtd}x ${escapeHtml(it.nome)}</span>
-      <button onclick="removerItemLista(${i})" title="Remover">×</button>
-    </li>
-  `).join('');
-}
-
-window.removerItemLista = function(i){
-  listaCompras.splice(i, 1);
-  renderListaPlanejamento();
-};
-
-document.getElementById('btnAdicionarLista').addEventListener('click', () => {
-  const nomeEl = document.getElementById('listaItemNome');
-  const qtdEl = document.getElementById('listaItemQtd');
-  const nome = nomeEl.value.trim();
-  const qtd = parseInt(qtdEl.value) || 1;
-  if(!nome) return;
-  listaCompras.push({ nome, qtd });
-  nomeEl.value = '';
-  qtdEl.value = '1';
-  renderListaPlanejamento();
-});
-
-document.getElementById('btnExportarLista').addEventListener('click', () => {
-  if(listaCompras.length === 0){ alert('Lista vazia!'); return; }
-  let txt = "=== LISTA DE COMPRAS (PLANEJAMENTO) ===\n\n";
-  listaCompras.forEach(i => txt += `- ${i.qtd}x ${i.nome}\n`);
-  baixarArquivoTxt(txt, "Lista_De_Compras.txt");
-});
-
-/* --- NOTA ATUAL & ITENS (SEM PREÇO) --- */
 const itemsList = document.getElementById('itemsList');
+const subtotalValue = document.getElementById('subtotalValue');
+const historyList = document.getElementById('historyList');
+const compareBox = document.getElementById('compareBox');
+const compareContent = document.getElementById('compareContent');
+const stampArea = document.getElementById('stampArea');
 
 function escapeHtml(str){
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
 }
+function nomeArquivoSeguro(nome){
+  return nome.replace(/[\\/:*?"<>|]/g, '-');
+}
 
+/* ================= ITENS DA COMPRA ATUAL ================= */
 function renderItems(){
   if(currentItems.length === 0){
-    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item adicionado ainda</li>';
+    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>';
   } else {
     itemsList.innerHTML = currentItems.map((it, i) => `
       <li>
         <span class="nome">${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span>
-        <button data-i="${i}" class="btn-remove" title="remover">×</button>
+        <span class="preco">${fmt(it.totalItem)} <button data-i="${i}" class="btn-remove" title="remover">×</button></span>
       </li>
     `).join('');
     itemsList.querySelectorAll('.btn-remove').forEach(btn => {
       btn.addEventListener('click', () => {
         currentItems.splice(Number(btn.dataset.i), 1);
         renderItems();
-        verificarDivergencias();
       });
     });
   }
+  const subtotal = currentItems.reduce((s, it) => s + it.totalItem, 0);
+  subtotalValue.textContent = fmt(subtotal);
 }
 
 document.getElementById('btnAdd').addEventListener('click', () => {
   const nomeEl = document.getElementById('itemNome');
   const qtdEl = document.getElementById('itemQtd');
-  
+  const precoEl = document.getElementById('itemPreco');
+
   const nome = nomeEl.value.trim();
   const qtd = parseInt(qtdEl.value) || 1;
-  
-  if(!nome || qtd < 1) return;
-  
-  currentItems.push({ nome, qtd });
-  
+  const preco = parseFloat(precoEl.value);
+
+  if(!nome || isNaN(preco) || preco < 0 || qtd < 1){
+    nomeEl.style.outline = !nome ? '2px solid var(--red)' : '';
+    qtdEl.style.outline = (isNaN(qtd) || qtd < 1) ? '2px solid var(--red)' : '';
+    precoEl.style.outline = (isNaN(preco) || preco < 0) ? '2px solid var(--red)' : '';
+    return;
+  }
+
+  const totalItem = preco * qtd;
+  currentItems.push({ nome, qtd, precoUnitario: preco, totalItem });
+
   nomeEl.value = '';
   qtdEl.value = '1';
+  precoEl.value = '';
+  nomeEl.style.outline = '';
+  qtdEl.style.outline = '';
+  precoEl.style.outline = '';
   renderItems();
-  verificarDivergencias();
   nomeEl.focus();
 });
 
-document.getElementById('btnProcessarNF').addEventListener('click', () => {
-  const txt = document.getElementById('qrInput').value.trim();
-  if(!txt){ alert('Cole os dados do QR code ou texto da nota primeiro.'); return; }
-  alert('Dados da NF lidos com sucesso!');
+[document.getElementById('itemNome'), document.getElementById('itemQtd'), document.getElementById('itemPreco')].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAdd').click(); }
+  });
 });
 
-/* --- VERIFICAÇÃO DE DIVERGÊNCIAS (COMPARAÇÃO COM A LISTA) --- */
-function verificarDivergencias(){
-  const area = document.getElementById('divergenceArea');
-  if(listaCompras.length === 0){ area.innerHTML = ''; return; }
-
-  let divergencias = [];
-  const compradosMap = {};
-  currentItems.forEach(it => {
-    const key = it.nome.toLowerCase();
-    compradosMap[key] = (compradosMap[key] || 0) + it.qtd;
+/* ================= COMPARAÇÃO COM LISTA DE COMPRAS ================= */
+function compararComLista(itensComprados, itensLista){
+  const compradosMap = {}, nomesOriginais = {};
+  itensComprados.forEach(it => {
+    const key = it.nome.trim().toLowerCase();
+    compradosMap[key] = (compradosMap[key]||0) + it.qtd;
+    nomesOriginais[key] = nomesOriginais[key] || it.nome;
   });
-
-  const planejadosMap = {};
-  listaCompras.forEach(it => {
-    const key = it.nome.toLowerCase();
-    planejadosMap[key] = (planejadosMap[key] || 0) + it.qtd;
+  const listaMap = {};
+  itensLista.forEach(it => {
+    const key = it.nome.trim().toLowerCase();
+    listaMap[key] = (listaMap[key]||0) + it.qtd;
+    nomesOriginais[key] = nomesOriginais[key] || it.nome;
   });
-
-  for(let item in compradosMap){
-    const qtdCompra = compradosMap[item];
-    const qtdPlanejada = planejadosMap[item] || 0;
-    if(qtdCompra > qtdPlanejada){
-      divergencias.push(`• **${item}**: Planejado ${qtdPlanejada}, você comprou **${qtdCompra}** (Excesso de ${qtdCompra - qtdPlanejada})`);
-    } else if(!planejadosMap[item]){
-      divergencias.push(`• **${item}**: Item comprado **fora da lista** (${qtdCompra} unidade(s))`);
+  const chaves = new Set([...Object.keys(compradosMap), ...Object.keys(listaMap)]);
+  const aMais = [], faltando = [], extras = [], ok = [];
+  chaves.forEach(key => {
+    const comprado = compradosMap[key] || 0;
+    const planejado = listaMap[key] || 0;
+    const nome = nomesOriginais[key];
+    if(planejado === 0){
+      extras.push({ nome, qtdComprada: comprado });
+    } else if(comprado > planejado){
+      aMais.push({ nome, qtdPlanejada: planejado, qtdComprada: comprado, diff: comprado - planejado });
+    } else if(comprado < planejado){
+      faltando.push({ nome, qtdPlanejada: planejado, qtdComprada: comprado, diff: planejado - comprado });
+    } else {
+      ok.push({ nome, qtd: comprado });
     }
-  }
-
-  if(divergencias.length > 0){
-    area.innerHTML = `
-      <div class="divergence-alert">
-        <h4>⚠️ Alerta de Divergência (Itens a Mais)</h4>
-        ${divergencias.join('<br>')}
-      </div>
-    `;
-  } else {
-    area.innerHTML = `<div style="font-size:12px; color:var(--green); margin-top:8px;">✔ Tudo alinhado com a lista de planejamento!</div>`;
-  }
+  });
+  return { aMais, faltando, extras, ok };
 }
 
-/* --- FINALIZAR E SALVAR COM NOME FORMATADO: NomeMercado_DD-MM-YY --- */
-document.getElementById('btnFinalizar').addEventListener('click', () => {
-  const mercadoEl = document.getElementById('mercado');
-  const mercado = mercadoEl.value.trim();
-  if(!mercado){ mercadoEl.style.outline = '2px solid var(--red)'; mercadoEl.focus(); return; }
-  if(currentItems.length === 0){ alert('Adicione itens antes de finalizar.'); return; }
+function buildDivergenciaHtml(compra, lista){
+  if(!lista) return '';
+  const r = compararComLista(compra.itens, lista.itens);
+  let html = `<div class="compare-box" style="margin-top:12px;"><h3>Comparado com "${escapeHtml(lista.nome)}"</h3>`;
+  if(r.aMais.length===0 && r.faltando.length===0 && r.extras.length===0){
+    html += '<p>✅ Tudo certo! Você comprou exatamente o que estava planejado.</p>';
+  } else {
+    if(r.aMais.length){
+      html += '<p style="margin:6px 0 2px;"><strong>⚠️ Comprado a mais que o previsto:</strong></p><ul>';
+      r.aMais.forEach(x => html += `<li>${escapeHtml(x.nome)}: previa ${x.qtdPlanejada}, comprou ${x.qtdComprada} (+${x.diff})</li>`);
+      html += '</ul>';
+    }
+    if(r.faltando.length){
+      html += '<p style="margin:6px 0 2px;"><strong>❌ Faltou / comprado a menos:</strong></p><ul>';
+      r.faltando.forEach(x => html += `<li>${escapeHtml(x.nome)}: previa ${x.qtdPlanejada}, comprou ${x.qtdComprada}</li>`);
+      html += '</ul>';
+    }
+    if(r.extras.length){
+      html += '<p style="margin:6px 0 2px;"><strong>➕ Comprado fora da lista:</strong></p><ul>';
+      r.extras.forEach(x => html += `<li>${escapeHtml(x.nome)} (${x.qtdComprada})</li>`);
+      html += '</ul>';
+    }
+  }
+  html += '</div>';
+  return html;
+}
 
-  const dataHoje = new Date();
-  const compra = {
-    id: 'compra_' + Date.now(),
-    mercado,
-    data: dataHoje.toISOString(),
-    itens: currentItems.slice(),
-    totalItens: currentItems.length
-  };
-
-  compras.push(compra);
-  saveCompras();
-  renderHistory();
-  renderCompareBox();
-
-  // Gerar TXT automático com o padrão Nome do mercado, DD/MM/YY
-  const dia = String(dataHoje.getDate()).padStart(2, '0');
-  const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
-  const ano = String(dataHoje.getFullYear()).slice(-2);
-  const nomeArquivo = `${mercado.replace(/[^a-zA-Z0-9]/g, '_')}_${dia}-${mes}-${ano}.txt`;
-
-  let relatorio = `MERCADO: ${mercado.toUpperCase()}\nDATA: ${dia}/${mes}/${dataHoje.getFullYear()}\n-----------------------------------------\n`;
-  currentItems.forEach(it => {
-    relatorio += `${it.qtd}x ${it.nome}\n`;
+/* ================= BLOCO DE TEXTO DE UMA COMPRA (usado em comprovante e relatório) ================= */
+function gerarBlocoCompra(c){
+  const data = new Date(c.data);
+  const dataStr = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  let s = '=========================================\n';
+  s += `MERCADO: ${c.mercado}\n`;
+  s += `DATA: ${dataStr}\n`;
+  s += '-----------------------------------------\n';
+  s += 'ITENS:\n';
+  c.itens.forEach(it => {
+    const total = it.totalItem || (it.precoUnitario * it.qtd);
+    s += `${it.qtd}x ${it.nome} | R$ ${it.precoUnitario.toFixed(2).replace('.', ',')} | R$ ${total.toFixed(2).replace('.', ',')}\n`;
   });
-  relatorio += `-----------------------------------------\n`;
+  s += '-----------------------------------------\n';
+  s += `TOTAL: R$ ${c.total.toFixed(2).replace('.', ',')}\n`;
+  s += '=========================================\n';
+  return s;
+}
 
-  baixarArquivoTxt(relatorio, nomeArquivo);
-
-  // Limpa tela
-  currentItems = [];
-  renderItems();
-  mercadoEl.value = '';
-  document.getElementById('divergenceArea').innerHTML = '';
-});
-
-function baixarArquivoTxt(conteudo, nomeArquivo){
+function baixarComprovante(compra){
+  const conteudo = gerarBlocoCompra(compra);
+  const data = new Date(compra.data);
+  const dd = String(data.getDate()).padStart(2,'0');
+  const mm = String(data.getMonth()+1).padStart(2,'0');
+  const yy = String(data.getFullYear()).slice(-2);
+  const nomeArquivo = nomeArquivoSeguro(`${compra.mercado}, ${dd}-${mm}-${yy}.txt`);
   const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -604,99 +795,750 @@ function baixarArquivoTxt(conteudo, nomeArquivo){
   URL.revokeObjectURL(url);
 }
 
-/* --- ANÁLISE DE LOTE DE TXT --- */
-document.getElementById('btnProcessBatch').addEventListener('click', () => {
-  const fileInput = document.getElementById('batchFiles');
-  const resultsDiv = document.getElementById('batchResults');
-  if(fileInput.files.length === 0){ alert('Selecione arquivos TXT.'); return; }
+/* ================= FINALIZAR COMPRA ================= */
+document.getElementById('btnFinalizar').addEventListener('click', () => {
+  const mercadoEl = document.getElementById('mercado');
+  const mercado = mercadoEl.value.trim();
+  if(!mercado){
+    mercadoEl.style.outline = '2px solid var(--red)';
+    mercadoEl.focus();
+    return;
+  }
+  if(currentItems.length === 0){
+    stampArea.innerHTML = '<p class="note">adicione ao menos um item antes de finalizar.</p>';
+    return;
+  }
+  mercadoEl.style.outline = '';
+  const total = currentItems.reduce((s, it) => s + it.totalItem, 0);
+  const compra = {
+    id: 'compra_' + Date.now(),
+    mercado,
+    data: new Date().toISOString(),
+    itens: currentItems.slice(),
+    total
+  };
 
-  let dadosLote = [];
-  let processados = 0;
+  const listaSelId = document.getElementById('listaComparar').value;
+  const listaSel = listasCompra.find(l => l.id === listaSelId);
 
-  Array.from(fileInput.files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      dadosLote.push({ nomeArquivo: file.name, conteudo: e.target.result });
-      processados++;
-      if(processados === fileInput.files.length){
-        analisarLoteArquivos(dadosLoid = dadosLote, resultsDiv);
-      }
-    };
-    reader.readAsText(file);
-  });
+  const comparisonHtml = buildComparison(compra);
+  const divergenciaHtml = buildDivergenciaHtml(compra, listaSel);
+
+  compras.push(compra);
+  saveCompras();
+
+  ultimaCompraFinalizada = compra;
+  stampArea.innerHTML = comparisonHtml + divergenciaHtml +
+    '<button class="btn btn-outline btn-add" id="btnBaixarComprovante" style="margin-top:10px;">📥 Baixar comprovante desta compra</button>';
+  document.getElementById('btnBaixarComprovante').addEventListener('click', () => baixarComprovante(ultimaCompraFinalizada));
+
+  renderHistory();
+  renderCompareBox();
+
+  currentItems = [];
+  renderItems();
+  mercadoEl.value = '';
+  document.getElementById('listaComparar').value = '';
 });
 
-function analisarLoteArquivos(lote, container){
-  let analiseHtml = `<strong>Análise de ${lote.length} arquivo(s):</strong><br><br>`;
-  lote.forEach(arq => {
-    analiseHtml += `📄 <em>${arq.nomeArquivo}</em> analisado com sucesso.<br>`;
-  });
-  analiseHtml += `<br><span style="color:var(--green);">✔ Arquivos cruzados para verificação de histórico de frequência por mercado.</span>`;
-  container.innerHTML = analiseHtml;
+function buildComparison(novaCompra){
+  const anteriores = compras.filter(c => c.mercado.toLowerCase() === novaCompra.mercado.toLowerCase());
+  if(anteriores.length === 0){
+    return `<div class="stamp neutral">primeira vez aqui</div><p class="note">essa é a primeira compra registrada em ${escapeHtml(novaCompra.mercado)}.</p>`;
+  }
+  const ultima = anteriores[anteriores.length - 1];
+  const diff = novaCompra.total - ultima.total;
+  const media = anteriores.reduce((s, c) => s + c.total, 0) / anteriores.length;
+  let stampClass = 'neutral', stampText = 'igual ao de sempre';
+  if(diff > 0.01){ stampClass = ''; stampText = 'mais caro que da última vez'; }
+  else if(diff < -0.01){ stampClass = 'green'; stampText = 'mais barato que da última vez'; }
+  const diffAbs = fmt(Math.abs(diff));
+  return `
+    <div class="stamp ${stampClass}">${stampText}</div>
+    <p class="note">${diff > 0.01 ? '+' : diff < -0.01 ? '-' : ''}${diffAbs} em relação à última compra em ${escapeHtml(novaCompra.mercado)} (média: ${fmt(media)})</p>
+  `;
 }
 
-/* --- HISTÓRICO E COMPARAÇÃO --- */
 function renderCompareBox(){
-  const compareBox = document.getElementById('compareBox');
-  if(compras.length < 1){ compareBox.style.display = 'none'; return; }
+  if(compras.length < 2){ compareBox.style.display = 'none'; return; }
   compareBox.style.display = 'block';
-  
-  let porMercado = {};
+  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
+  const mediaGeral = totalGeral / compras.length;
+  const porMercado = {};
   compras.forEach(c => {
-    if(!porMercado[c.mercado]) porMercado[c.mercado] = 0;
-    porMercado[c.mercado]++;
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
+    porMercado[c.mercado].push(c.total);
   });
-  
-  const mercadoMaisFrequente = Object.entries(porMercado).sort((a,b) => b[1] - a[1])[0];
+  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
+    mercado: m,
+    media: vals.reduce((s,v)=>s+v,0)/vals.length,
+    n: vals.length
+  })).sort((a,b) => a.media - b.media);
 
-  let html = `<div class="line"><span>Total de Compras</span><strong>${compras.length}</strong></div>`;
-  if(mercadoMaisFrequente){
-    html += `<div class="line"><span>Mercado mais frequente</span><strong>${escapeHtml(mercadoMaisFrequente[0])} (${mercadoMaisFrequente[1]}x)</strong></div>`;
+  const maisBarato = mercadoMedias[0];
+  const maisCaro = mercadoMedias[mercadoMedias.length - 1];
+
+  let html = `
+    <div class="line"><span>Total gasto (${compras.length} compras)</span><strong>${fmt(totalGeral)}</strong></div>
+    <div class="line"><span>Média por compra</span><strong>${fmt(mediaGeral)}</strong></div>
+  `;
+  if(mercadoMedias.length > 1){
+    html += `
+      <div class="line"><span>Mercado mais barato (média)</span><strong>${escapeHtml(maisBarato.mercado)} — ${fmt(maisBarato.media)}</strong></div>
+      <div class="line"><span>Mercado mais caro (média)</span><strong>${escapeHtml(maisCaro.mercado)} — ${fmt(maisCaro.media)}</strong></div>
+    `;
   }
-  document.getElementById('compareContent').innerHTML = html;
+  compareContent.innerHTML = html;
 }
 
 function renderHistory(){
-  const historyList = document.getElementById('historyList');
   if(compras.length === 0){
     historyList.innerHTML = '<p class="empty">nenhuma compra registrada ainda.</p>';
     return;
   }
-  historyList.innerHTML = compras.slice().reverse().map(c => `
-    <div class="trip">
+  const ordenadas = compras.slice().reverse();
+  historyList.innerHTML = ordenadas.map(c => {
+    const data = new Date(c.data);
+    const dataStr = data.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    return `
+      <div class="trip" data-id="${c.id}">
+        <div class="trip-head">
+          <div>
+            <div class="mercado">${escapeHtml(c.mercado)}</div>
+            <div class="meta">${dataStr} · ${c.itens.length} ite${c.itens.length===1?'m':'ns'}</div>
+          </div>
+          <div class="total">${fmt(c.total)}</div>
+        </div>
+        <div class="trip-body">
+          <ul>
+            ${c.itens.map(it => `<li><span>${it.qtd > 1 ? it.qtd + 'x ' : ''}${escapeHtml(it.nome)}</span><span>${fmt(it.totalItem || (it.precoUnitario * (it.qtd || 1)))}</span></li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }).join('');
+  historyList.querySelectorAll('.trip').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('open'));
+  });
+}
+
+/* ================= LISTA DE COMPRAS ================= */
+function renderListaItensAtual(){
+  const ul = document.getElementById('listaItensAtual');
+  if(listaAtualItens.length === 0){
+    ul.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda</li>';
+    return;
+  }
+  ul.innerHTML = listaAtualItens.map((it,i) => `
+    <li><span class="nome">${it.qtd}x ${escapeHtml(it.nome)}</span><span class="preco"><button data-i="${i}" class="btn-remove">×</button></span></li>
+  `).join('');
+  ul.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', () => { listaAtualItens.splice(Number(btn.dataset.i),1); renderListaItensAtual(); });
+  });
+}
+
+document.getElementById('btnAddItemLista').addEventListener('click', () => {
+  const nomeEl = document.getElementById('listaItemNome');
+  const qtdEl = document.getElementById('listaItemQtd');
+  const nome = nomeEl.value.trim();
+  const qtd = parseInt(qtdEl.value) || 1;
+  if(!nome){ nomeEl.style.outline = '2px solid var(--red)'; return; }
+  nomeEl.style.outline = '';
+  listaAtualItens.push({ nome, qtd });
+  nomeEl.value = ''; qtdEl.value = '1';
+  renderListaItensAtual();
+  nomeEl.focus();
+});
+
+document.getElementById('listaItemNome').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAddItemLista').click(); }
+});
+document.getElementById('listaItemQtd').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAddItemLista').click(); }
+});
+
+function baixarLista(lista){
+  let s = `LISTA DE COMPRAS: ${lista.nome}\n`;
+  s += `Criada em: ${new Date(lista.criadoEm).toLocaleDateString('pt-BR')}\n`;
+  s += '-----------------------------------------\n';
+  lista.itens.forEach(it => { s += `${it.qtd}x ${it.nome}\n`; });
+  s += '-----------------------------------------\n';
+  s += `Total de itens: ${lista.itens.length}\n`;
+  const blob = new Blob([s], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivoSeguro(`${lista.nome} - Lista de Compras.txt`);
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnBaixarLista').addEventListener('click', () => {
+  if(listaAtualItens.length === 0){ alert('Adicione itens antes de baixar.'); return; }
+  const nomeEl = document.getElementById('listaNome');
+  const nome = nomeEl.value.trim() || 'Lista de Compras';
+  baixarLista({ nome, criadoEm: new Date().toISOString(), itens: listaAtualItens });
+});
+
+document.getElementById('btnSalvarLista').addEventListener('click', () => {
+  const nomeEl = document.getElementById('listaNome');
+  const nome = nomeEl.value.trim();
+  if(!nome){ nomeEl.style.outline = '2px solid var(--red)'; nomeEl.focus(); return; }
+  nomeEl.style.outline = '';
+  if(listaAtualItens.length === 0){ alert('Adicione ao menos um item à lista.'); return; }
+
+  if(listaEmEdicaoId){
+    const idx = listasCompra.findIndex(l => l.id === listaEmEdicaoId);
+    if(idx > -1) listasCompra[idx] = { ...listasCompra[idx], nome, itens: listaAtualItens.slice() };
+  } else {
+    listasCompra.push({ id: 'lista_' + Date.now(), nome, criadoEm: new Date().toISOString(), itens: listaAtualItens.slice() });
+  }
+  saveListas();
+  renderListasSalvas();
+  atualizarSelectListas();
+  listaEmEdicaoId = null;
+  nomeEl.value = '';
+  listaAtualItens = [];
+  renderListaItensAtual();
+});
+
+function carregarListaParaEdicao(lista){
+  listaEmEdicaoId = lista.id;
+  document.getElementById('listaNome').value = lista.nome;
+  listaAtualItens = lista.itens.map(it => ({ ...it }));
+  renderListaItensAtual();
+  document.querySelector('.tab-btn[data-tab="listas"]').click();
+}
+
+function renderListasSalvas(){
+  const cont = document.getElementById('listasSalvas');
+  if(listasCompra.length === 0){ cont.innerHTML = '<p class="empty">nenhuma lista salva ainda.</p>'; return; }
+  cont.innerHTML = listasCompra.map(l => `
+    <div class="trip" data-id="${l.id}" style="cursor:default;">
       <div class="trip-head">
         <div>
-          <div class="mercado">${escapeHtml(c.mercado)}</div>
-          <div class="meta">${new Date(c.data).toLocaleDateString()} · ${c.itens.length} itens</div>
+          <div class="mercado">${escapeHtml(l.nome)}</div>
+          <div class="meta">${l.itens.length} ite${l.itens.length===1?'m':'ns'}</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-remove" data-action="editar" data-id="${l.id}" title="editar">✎</button>
+          <button class="btn-remove" data-action="baixar" data-id="${l.id}" title="baixar">↓</button>
+          <button class="btn-remove" data-action="excluir" data-id="${l.id}" title="excluir">×</button>
         </div>
       </div>
     </div>
   `).join('');
+  cont.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const acao = btn.dataset.action;
+      const lista = listasCompra.find(l => l.id === id);
+      if(!lista) return;
+      if(acao === 'editar'){ carregarListaParaEdicao(lista); }
+      else if(acao === 'baixar'){ baixarLista(lista); }
+      else if(acao === 'excluir'){
+        if(confirm(`Excluir a lista "${lista.nome}"?`)){
+          listasCompra = listasCompra.filter(l => l.id !== id);
+          saveListas();
+          renderListasSalvas();
+          atualizarSelectListas();
+        }
+      }
+    });
+  });
 }
 
-document.getElementById('resetLink').addEventListener('click', () => {
-  if(confirm('Apagar histórico?')){
-    compras = [];
-    localStorage.removeItem('compras');
-    renderHistory();
-    renderCompareBox();
+function atualizarSelectListas(){
+  const sel = document.getElementById('listaComparar');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Nenhuma lista (não comparar)</option>' +
+    listasCompra.map(l => `<option value="${l.id}">${escapeHtml(l.nome)} (${l.itens.length} itens)</option>`).join('');
+  if(listasCompra.some(l => l.id === atual)) sel.value = atual;
+}
+
+/* ================= COMPARAÇÃO DE PREÇOS ENTRE MERCADOS (LOTE) ================= */
+function parseBlocosDeTexto(texto){
+  const compras = [];
+  const regexBloco = /MERCADO:\s*(.+)\r?\nDATA:\s*([^\r\n]+)\r?\n[-=]+\r?\nITENS:\r?\n([\s\S]*?)\r?\n[-=]+\r?\nTOTAL:\s*R\$\s*([\d.,]+)/g;
+  let m;
+  while((m = regexBloco.exec(texto)) !== null){
+    const mercado = m[1].trim();
+    const dataStr = m[2].trim();
+    const itensTexto = m[3];
+    const total = parseValorBR(m[4]);
+    const itens = [];
+    const regexItem = /^(\d+)x\s+(.+?)\s*\|\s*R\$\s*([\d.,]+)\s*\|\s*R\$\s*([\d.,]+)$/gm;
+    let mi;
+    while((mi = regexItem.exec(itensTexto)) !== null){
+      itens.push({
+        qtd: parseInt(mi[1]),
+        nome: mi[2].trim(),
+        precoUnitario: parseValorBR(mi[3]),
+        totalItem: parseValorBR(mi[4])
+      });
+    }
+    compras.push({ mercado, dataStr, total, itens });
   }
+  return compras;
+}
+
+function parseDataBR(str){
+  const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(!m) return new Date(0);
+  return new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00`);
+}
+
+function processarAnalisePrecos(textos){
+  let todasCompras = [];
+  textos.forEach(t => { todasCompras = todasCompras.concat(parseBlocosDeTexto(t)); });
+
+  const resultadoDiv = document.getElementById('resultadoPrecos');
+
+  if(todasCompras.length === 0){
+    resultadoDiv.innerHTML = '<p class="empty">Não consegui reconhecer nenhuma compra nesses arquivos. Use os .txt exportados por este app (comprovante ou relatório completo).</p>';
+    return;
+  }
+
+  const porMercado = {};
+  todasCompras.forEach(c => {
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
+    porMercado[c.mercado].push(c);
+  });
+
+  // Variação de preço ao longo do tempo, por mercado
+  let htmlVariacoes = '';
+  Object.entries(porMercado).forEach(([mercado, listaCompras]) => {
+    listaCompras.sort((a,b) => parseDataBR(a.dataStr) - parseDataBR(b.dataStr));
+    const precoAnteriorPorItem = {};
+    const variacoes = [];
+    listaCompras.forEach(c => {
+      c.itens.forEach(it => {
+        const key = it.nome.toLowerCase();
+        if(precoAnteriorPorItem[key] !== undefined){
+          const diff = it.precoUnitario - precoAnteriorPorItem[key];
+          if(Math.abs(diff) > 0.001){
+            variacoes.push({ nome: it.nome, de: precoAnteriorPorItem[key], para: it.precoUnitario, diff });
+          }
+        }
+        precoAnteriorPorItem[key] = it.precoUnitario;
+      });
+    });
+    if(variacoes.length){
+      htmlVariacoes += `<h4>${escapeHtml(mercado)}</h4><ul class="preco-lista">`;
+      variacoes.forEach(v => {
+        const subiu = v.diff > 0;
+        htmlVariacoes += `<li class="${subiu?'subiu':'desceu'}">${escapeHtml(v.nome)}: ${fmt(v.de)} → ${fmt(v.para)} (${subiu?'▲':'▼'} ${fmt(Math.abs(v.diff))})</li>`;
+      });
+      htmlVariacoes += '</ul>';
+    }
+  });
+  if(!htmlVariacoes) htmlVariacoes = '<p class="empty">Nenhum item se repetiu no mesmo mercado para comparar variação de preço.</p>';
+
+  // Ranking por gasto médio de visita
+  const mediaPorMercado = Object.entries(porMercado).map(([mercado, listaCompras]) => ({
+    mercado,
+    media: listaCompras.reduce((s,c)=>s+c.total,0) / listaCompras.length,
+    visitas: listaCompras.length
+  })).sort((a,b) => a.media - b.media);
+
+  // Mercado mais barato por item em comum
+  const itemPorMercado = {};
+  todasCompras.forEach(c => {
+    c.itens.forEach(it => {
+      const key = it.nome.toLowerCase();
+      if(!itemPorMercado[key]) itemPorMercado[key] = {};
+      if(itemPorMercado[key][c.mercado] === undefined || it.precoUnitario < itemPorMercado[key][c.mercado]){
+        itemPorMercado[key][c.mercado] = it.precoUnitario;
+      }
+    });
+  });
+  const vitoriasPorMercado = {};
+  let itensComparaveis = 0;
+  Object.entries(itemPorMercado).forEach(([nome, precos]) => {
+    const mercados = Object.keys(precos);
+    if(mercados.length < 2) return;
+    itensComparaveis++;
+    let melhorMercado = mercados[0];
+    mercados.forEach(m => { if(precos[m] < precos[melhorMercado]) melhorMercado = m; });
+    vitoriasPorMercado[melhorMercado] = (vitoriasPorMercado[melhorMercado]||0) + 1;
+  });
+
+  let html = '<h3>Ranking por gasto médio de visita</h3><ol class="ranking-lista">';
+  mediaPorMercado.forEach(m => {
+    html += `<li><strong>${escapeHtml(m.mercado)}</strong> — média ${fmt(m.media)} (${m.visitas} compra${m.visitas>1?'s':''})</li>`;
+  });
+  html += '</ol>';
+
+  if(itensComparaveis > 0){
+    html += '<h3>Mercado mais barato por item em comum</h3><ul class="ranking-lista">';
+    Object.entries(vitoriasPorMercado).sort((a,b)=>b[1]-a[1]).forEach(([mercado, vitorias]) => {
+      html += `<li><strong>${escapeHtml(mercado)}</strong> foi mais barato em ${vitorias} de ${itensComparaveis} itens comparáveis</li>`;
+    });
+    html += '</ul>';
+  } else {
+    html += '<p class="note-small">Nenhum item apareceu em mais de um mercado para comparar preço direto item a item.</p>';
+  }
+
+  html += '<h3>Variação de preço ao longo do tempo (por mercado)</h3>' + htmlVariacoes;
+
+  resultadoDiv.innerHTML = html;
+}
+
+document.getElementById('btnAnalisarArquivos').addEventListener('click', () => {
+  const input = document.getElementById('inputArquivosPrecos');
+  const files = input.files;
+  if(!files || files.length === 0){ alert('Selecione um ou mais arquivos .txt exportados pelo app.'); return; }
+  const leituras = [];
+  let lidos = 0;
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      leituras.push(e.target.result);
+      lidos++;
+      if(lidos === files.length) processarAnalisePrecos(leituras);
+    };
+    reader.readAsText(file, 'utf-8');
+  });
 });
 
-function saveCompras(){
-  localStorage.setItem('compras', JSON.stringify(compras));
+/* ================= TABS DO MENU ================= */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById('panel-' + btn.dataset.tab).style.display = 'block';
+  });
+});
+
+/* ---------- Drawer ---------- */
+const menuBtn = document.getElementById('menuBtn');
+const overlay = document.getElementById('overlay');
+const drawer = document.getElementById('drawer');
+const closeDrawer = document.getElementById('closeDrawer');
+
+function openDrawer(){ drawer.classList.add('show'); overlay.classList.add('show'); }
+function closeDrawerFn(){ drawer.classList.remove('show'); overlay.classList.remove('show'); }
+
+menuBtn.addEventListener('click', openDrawer);
+closeDrawer.addEventListener('click', closeDrawerFn);
+overlay.addEventListener('click', closeDrawerFn);
+
+/* ---------- Confirm modal (apagar histórico) ---------- */
+const modalOverlay = document.getElementById('modalOverlay');
+const modalCancel = document.getElementById('modalCancel');
+const modalConfirm = document.getElementById('modalConfirm');
+
+function askConfirmDelete(){
+  return new Promise(resolve => {
+    modalOverlay.classList.add('show');
+    const onCancel = () => { cleanup(); resolve(false); };
+    const onConfirm = () => { cleanup(); resolve(true); };
+    function cleanup(){
+      modalOverlay.classList.remove('show');
+      modalCancel.removeEventListener('click', onCancel);
+      modalConfirm.removeEventListener('click', onConfirm);
+    }
+    modalCancel.addEventListener('click', onCancel);
+    modalConfirm.addEventListener('click', onConfirm);
+  });
 }
 
-function loadCompras(){
-  const d = localStorage.getItem('compras');
-  if(d) compras = JSON.parse(d);
+document.getElementById('resetLink').addEventListener('click', async () => {
+  const ok = await askConfirmDelete();
+  if(!ok) return;
+  compras = [];
+  saveCompras();
   renderHistory();
   renderCompareBox();
-  renderListaPlanejamento();
+  stampArea.innerHTML = '';
+});
+
+/* ================= QR CODE DA NOTA FISCAL ================= */
+const qrModalOverlay = document.getElementById('qrModalOverlay');
+const qrVideo = document.getElementById('qrVideo');
+const qrCanvas = document.getElementById('qrCanvas');
+const qrCtx = qrCanvas.getContext('2d');
+const qrResultado = document.getElementById('qrResultado');
+let qrStream = null;
+let qrScanAtivo = false;
+
+document.getElementById('btnAbrirQR').addEventListener('click', abrirModalQR);
+document.getElementById('closeQrModal').addEventListener('click', fecharModalQR);
+qrModalOverlay.addEventListener('click', (e) => { if(e.target === qrModalOverlay) fecharModalQR(); });
+
+function abrirModalQR(){
+  qrModalOverlay.classList.add('show');
+  qrResultado.innerHTML = '';
+  document.getElementById('textoNotaColado').value = '';
+  iniciarCamera();
+}
+function fecharModalQR(){
+  qrModalOverlay.classList.remove('show');
+  pararCamera();
+}
+function iniciarCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    qrResultado.innerHTML = '<p class="note-small">Este navegador/contexto não permite acesso à câmera aqui (é necessário HTTPS). Use o campo de colar texto abaixo.</p>';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      qrStream = stream;
+      qrVideo.srcObject = stream;
+      qrVideo.play();
+      qrScanAtivo = true;
+      requestAnimationFrame(tickQR);
+    })
+    .catch(err => {
+      qrResultado.innerHTML = '<p class="note-small">Não foi possível acessar a câmera (' + err.message + '). Use o campo de colar texto abaixo.</p>';
+    });
+}
+function pararCamera(){
+  qrScanAtivo = false;
+  if(qrStream){ qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+}
+function tickQR(){
+  if(!qrScanAtivo) return;
+  if(qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA){
+    qrCanvas.width = qrVideo.videoWidth;
+    qrCanvas.height = qrVideo.videoHeight;
+    qrCtx.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
+    const imageData = qrCtx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+    const code = (typeof jsQR === 'function') ? jsQR(imageData.data, imageData.width, imageData.height) : null;
+    if(code){ onQRDetectado(code.data); return; }
+  }
+  requestAnimationFrame(tickQR);
+}
+function onQRDetectado(texto){
+  pararCamera();
+  const match = texto.match(/p=(\d{44})/);
+  const chave = match ? match[1] : null;
+  let html = '';
+  if(chave) html += `<p><strong>Chave de acesso:</strong> ${chave}</p>`;
+  html += `<p><a href="${texto}" target="_blank" rel="noopener">🔗 Abrir nota fiscal no navegador</a></p>`;
+  html += '<p class="note-small">O QR Code só contém o link da nota — não a lista de produtos. Abra o link, copie o texto com os itens e cole no campo abaixo para importar automaticamente.</p>';
+  qrResultado.innerHTML = html;
+}
+
+/* Interpretador (melhor esforço) do texto colado da nota fiscal */
+function limparNomeItem(s){
+  return s.replace(/^\(?c[oó]d(igo)?[.:]?\s*\d+\)?/i, '').replace(/\s+/g, ' ').trim();
+}
+function capitalize(str){
+  if(!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+function parseTextoNota(texto){
+  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+  const detectados = [];
+  for(let i = 0; i < linhas.length; i++){
+    const linha = linhas[i];
+    let m = linha.match(/qtde\.?:?\s*([\d.,]+).*?vl\.?\s*unit\.?:?\s*([\d.,]+)/i);
+    if(m){
+      const qtd = Math.round(parseValorBR(m[1])) || 1;
+      const precoUnit = parseValorBR(m[2]);
+      const nomeCandidato = linhas[i-1] || 'Item';
+      detectados.push({ nome: capitalize(limparNomeItem(nomeCandidato)), qtd, preco: precoUnit });
+      continue;
+    }
+    m = linha.match(/^(.+?)\s+(\d+)\s*(?:un|und|unid|kg|pc|pct)?\s*[x×]\s*([\d.,]+)/i);
+    if(m){
+      const nome = capitalize(limparNomeItem(m[1]));
+      const qtd = parseInt(m[2]) || 1;
+      const precoUnit = parseValorBR(m[3]);
+      if(nome.length > 1) detectados.push({ nome, qtd, preco: precoUnit });
+    }
+  }
+  return detectados;
+}
+
+document.getElementById('btnImportarTexto').addEventListener('click', () => {
+  const texto = document.getElementById('textoNotaColado').value;
+  if(!texto.trim()){ alert('Cole o texto da nota fiscal no campo acima.'); return; }
+  const detectados = parseTextoNota(texto);
+  if(detectados.length === 0){
+    qrResultado.innerHTML += '<p class="note-small">Não consegui reconhecer itens nesse texto. Adicione os itens manualmente no formulário principal.</p>';
+    return;
+  }
+  detectados.forEach(d => {
+    const preco = (d.preco !== null && !isNaN(d.preco)) ? d.preco : 0;
+    currentItems.push({ nome: d.nome, qtd: d.qtd, precoUnitario: preco, totalItem: preco * d.qtd });
+  });
+  renderItems();
+  qrResultado.innerHTML += `<p class="note-small">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} para a compra atual. Revise nomes, quantidades e preços antes de finalizar.</p>`;
+  fecharModalQR();
+});
+
+/* ---------- RECONHECIMENTO DE VOZ ---------- */
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micUnico = document.getElementById('micUnico');
+
+function parseVoiceInput(text){
+  let raw = text.toLowerCase().trim();
+
+  const textoParaNumero = {
+    "um": "1", "uma": "1", "dois": "2", "duas": "2", "três": "3", "tres": "3",
+    "quatro": "4", "cinco": "5", "seis": "6", "sete": "7", "oito": "8", "nove": "9", "dez": "10"
+  };
+
+  Object.keys(textoParaNumero).forEach(palavra => {
+    const reg = new RegExp(`\\b${palavra}\\b`, 'gi');
+    raw = raw.replace(reg, textoParaNumero[palavra]);
+  });
+
+  raw = raw.replace(/(\d+)\s*e\s*(\d{2})\b/g, '$1.$2');
+
+  let qtd = 1;
+  let preco = null;
+  let nome = raw;
+
+  const regexPreco = /(\d+(?:[.,]\d+)?)\s*(?:reais|real|r\$)?\s*$/i;
+  const matchPreco = raw.match(regexPreco);
+
+  if(matchPreco){
+    const valorStr = matchPreco[1].replace(',', '.');
+    preco = parseFloat(valorStr);
+    raw = raw.slice(0, matchPreco.index).trim();
+  }
+
+  const matchQtdInicio = raw.match(/^(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?\b/i);
+  const matchQtdFim = raw.match(/\b(\d+)\s*(?:x|unidades?|pacotes?|caixas?|itens|un)?$/i);
+
+  if(matchQtdInicio){
+    qtd = parseInt(matchQtdInicio[1]);
+    raw = raw.slice(matchQtdInicio[0].length).trim();
+  } else if(matchQtdFim){
+    qtd = parseInt(matchQtdFim[1]);
+    raw = raw.slice(0, matchQtdFim.index).trim();
+  }
+
+  nome = raw
+    .replace(/\b(de|por|custou|com|unidades?|pacotes?|caixas?)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+    nome: capitalize(nome) || capitalize(text),
+    qtd: qtd > 0 ? qtd : 1,
+    preco: (preco !== null && !isNaN(preco)) ? preco : null
+  };
+}
+
+if(!SpeechRecognitionAPI){
+  micUnico.disabled = true;
+  micUnico.title = 'Reconhecimento de voz não disponível neste navegador';
+  micUnico.querySelector('.dot').style.display = 'none';
+  micUnico.append(' (indisponível)');
+} else {
+  let recognizing = false;
+  micUnico.addEventListener('click', () => {
+    if(recognizing) return;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => { recognizing = true; micUnico.classList.add('listening'); };
+    recognition.onend = () => { recognizing = false; micUnico.classList.remove('listening'); };
+    recognition.onerror = () => { recognizing = false; micUnico.classList.remove('listening'); };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const parsed = parseVoiceInput(transcript);
+      if(parsed.nome) document.getElementById('itemNome').value = parsed.nome;
+      document.getElementById('itemQtd').value = parsed.qtd;
+      if(parsed.preco !== null) document.getElementById('itemPreco').value = parsed.preco;
+    };
+    recognition.start();
+  });
+}
+
+/* ---------- Exportação de Relatório completo ---------- */
+document.getElementById('btnExportar').addEventListener('click', () => {
+  if (compras.length === 0) {
+    alert('Nenhuma compra registrada para exportar.');
+    return;
+  }
+
+  let relatorio = `=========================================\n`;
+  relatorio += `        RELATÓRIO DE COMPRAS             \n`;
+  relatorio += `=========================================\n\n`;
+
+  relatorio += `[ COMPARATIVO GERAL ]\n`;
+  relatorio += `-----------------------------------------\n`;
+  const totalGeral = compras.reduce((s, c) => s + c.total, 0);
+  const mediaGeral = totalGeral / compras.length;
+
+  relatorio += `Total Geral Gasto: ${fmt(totalGeral)}\n`;
+  relatorio += `Total de Compras:  ${compras.length}\n`;
+  relatorio += `Média por Compra:  ${fmt(mediaGeral)}\n`;
+
+  const porMercado = {};
+  compras.forEach(c => {
+    if(!porMercado[c.mercado]) porMercado[c.mercado] = [];
+    porMercado[c.mercado].push(c.total);
+  });
+
+  const mercadoMedias = Object.entries(porMercado).map(([m, vals]) => ({
+    mercado: m,
+    media: vals.reduce((s,v)=>s+v,0)/vals.length,
+    n: vals.length
+  })).sort((a,b) => a.media - b.media);
+
+  if (mercadoMedias.length > 1) {
+    const maisBarato = mercadoMedias[0];
+    const maisCaro = mercadoMedias[mercadoMedias.length - 1];
+    relatorio += `Mercado + Barato: ${maisBarato.mercado} (média: ${fmt(maisBarato.media)})\n`;
+    relatorio += `Mercado + Caro:   ${maisCaro.mercado} (média: ${fmt(maisCaro.media)})\n`;
+  }
+  relatorio += `-----------------------------------------\n\n`;
+
+  relatorio += `[ HISTÓRICO DE COMPRAS ]\n\n`;
+  const ordenadas = compras.slice().reverse();
+  ordenadas.forEach(c => { relatorio += gerarBlocoCompra(c) + '\n'; });
+
+  const blob = new Blob([relatorio], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Relatorio_Compras_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ---------- Storage (localStorage) ---------- */
+function saveCompras(){
+  try { localStorage.setItem('compras', JSON.stringify(compras)); }
+  catch(e){ console.error('Erro ao salvar compras:', e); }
+}
+function loadCompras(){
+  try {
+    const dados = localStorage.getItem('compras');
+    compras = dados ? JSON.parse(dados) : [];
+  } catch(e){ console.error('Erro ao carregar compras:', e); compras = []; }
+  renderHistory();
+  renderCompareBox();
+}
+function saveListas(){
+  try { localStorage.setItem('listasCompra', JSON.stringify(listasCompra)); }
+  catch(e){ console.error('Erro ao salvar listas:', e); }
+}
+function loadListas(){
+  try {
+    const dados = localStorage.getItem('listasCompra');
+    listasCompra = dados ? JSON.parse(dados) : [];
+  } catch(e){ console.error('Erro ao carregar listas:', e); listasCompra = []; }
+  renderListasSalvas();
+  atualizarSelectListas();
 }
 
 loadCompras();
+loadListas();
 renderItems();
+renderListaItensAtual();
 </script>
 
 </body>
