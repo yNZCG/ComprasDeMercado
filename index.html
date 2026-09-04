@@ -515,8 +515,10 @@
 
   <div class="tab-panel" id="panel-precos" style="display:none;">
     <p class="history-title" style="margin-top:0;">comparar preços entre mercados</p>
-    <p class="note-small">Envie vários arquivos .txt exportados por este app (comprovante de compra ou relatório completo) para ver o que subiu, o que baixou, e qual mercado ficou mais barato.</p>
-    <input type="file" id="inputArquivosPrecos" multiple accept=".txt">
+    <p class="note-small">Adicione até 16 arquivos .txt exportados por este app (comprovante de compra ou relatório completo). Pode clicar em "Adicionar arquivos" quantas vezes precisar — eles vão se somando na lista abaixo.</p>
+    <input type="file" id="inputArquivosPrecos" multiple accept=".txt" style="display:none;">
+    <button class="btn btn-add btn-outline" id="btnEscolherArquivos" style="margin-top:8px;">+ Adicionar arquivos</button>
+    <ul class="items" id="listaArquivosPrecos" style="margin-top:10px;"></ul>
     <button class="btn btn-add" id="btnAnalisarArquivos" style="margin-top:8px;">Analisar arquivos</button>
     <div id="resultadoPrecos" style="margin-top:16px;"></div>
   </div>
@@ -1187,10 +1189,54 @@ function processarAnalisePrecos(textos){
   resultadoDiv.innerHTML = html;
 }
 
+const MAX_ARQUIVOS_PRECOS = 16;
+let arquivosPrecosSelecionados = [];
+
+const inputArquivosPrecos = document.getElementById('inputArquivosPrecos');
+const btnEscolherArquivos = document.getElementById('btnEscolherArquivos');
+const listaArquivosPrecos = document.getElementById('listaArquivosPrecos');
+
+btnEscolherArquivos.addEventListener('click', () => inputArquivosPrecos.click());
+
+function renderListaArquivosPrecos(){
+  if(arquivosPrecosSelecionados.length === 0){
+    listaArquivosPrecos.innerHTML = '';
+    btnEscolherArquivos.textContent = '+ Adicionar arquivos';
+    return;
+  }
+  listaArquivosPrecos.innerHTML = arquivosPrecosSelecionados.map((f, i) => `
+    <li>
+      <span class="nome">${escapeHtml(f.name)}</span>
+      <span class="preco"><button data-i="${i}" class="btn-remove" title="remover">×</button></span>
+    </li>
+  `).join('');
+  listaArquivosPrecos.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      arquivosPrecosSelecionados.splice(Number(btn.dataset.i), 1);
+      renderListaArquivosPrecos();
+    });
+  });
+  btnEscolherArquivos.textContent = `+ Adicionar arquivos (${arquivosPrecosSelecionados.length}/${MAX_ARQUIVOS_PRECOS})`;
+}
+
+inputArquivosPrecos.addEventListener('change', () => {
+  const novos = Array.from(inputArquivosPrecos.files || []);
+  let ignorados = 0;
+  novos.forEach(f => {
+    if(arquivosPrecosSelecionados.length >= MAX_ARQUIVOS_PRECOS){ ignorados++; return; }
+    const jaTem = arquivosPrecosSelecionados.some(existente => existente.name === f.name && existente.size === f.size && existente.lastModified === f.lastModified);
+    if(!jaTem) arquivosPrecosSelecionados.push(f);
+  });
+  if(ignorados > 0){
+    alert(`Limite de ${MAX_ARQUIVOS_PRECOS} arquivos atingido. ${ignorados} arquivo(s) não foram adicionados.`);
+  }
+  inputArquivosPrecos.value = '';
+  renderListaArquivosPrecos();
+});
+
 document.getElementById('btnAnalisarArquivos').addEventListener('click', () => {
-  const input = document.getElementById('inputArquivosPrecos');
-  const files = input.files;
-  if(!files || files.length === 0){ alert('Selecione um ou mais arquivos .txt exportados pelo app.'); return; }
+  const files = arquivosPrecosSelecionados;
+  if(!files || files.length === 0){ alert('Adicione um ou mais arquivos .txt exportados pelo app.'); return; }
   const leituras = [];
   let lidos = 0;
   Array.from(files).forEach(file => {
