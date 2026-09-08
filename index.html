@@ -594,9 +594,9 @@
     <div id="qrResultado" style="font-size:13px;"></div>
     <hr class="divider">
     <label for="textoNotaColado">Ou cole aqui o texto da nota fiscal</label>
-    <textarea id="textoNotaColado" rows="5" placeholder="Copie o conteúdo da página da nota (Sefaz) e cole aqui"></textarea>
+    <textarea id="textoNotaColado" rows="5" placeholder="Copie todo o conteúdo da página da nota (Sefaz ou Cupom) e cole aqui"></textarea>
     <button class="btn btn-add" id="btnImportarTexto" style="margin-top:8px;">Importar itens do texto</button>
-    <p class="note-small">O QR Code só contém o link da nota, não a lista de produtos — por isso é preciso abrir o link e colar o texto para importar os itens automaticamente. O reconhecimento é uma tentativa automática; revise nome, quantidade e preço antes de finalizar.</p>
+    <p class="note-small">O QR Code redireciona para a Sefaz. Cole o texto completo da página caso a auto-importação não consiga carregar diretamente por restrição do navegador.</p>
   </div>
 </div>
 
@@ -650,7 +650,6 @@ function renderItems(){
   subtotalValue.textContent = fmt(subtotal);
 }
 
-/* Adiciona um item direto na compra atual (usado pelo ditado por voz e pela importação da nota/QR) */
 function adicionarItemCompra(nome, qtd, preco){
   nome = (nome || '').trim();
   qtd = parseInt(qtd) || 1;
@@ -722,7 +721,6 @@ function buildDivergenciaHtml(compra, lista){
   return html;
 }
 
-/* ================= BLOCO DE TEXTO DE UMA COMPRA (usado em comprovante e relatório) ================= */
 function gerarBlocoCompra(c){
   const data = new Date(c.data);
   const dataStr = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
@@ -1021,7 +1019,7 @@ function atualizarSelectListas(){
   if(listasCompra.some(l => l.id === atual)) sel.value = atual;
 }
 
-/* ================= COMPARAÇÃO DE PREÇOS ENTRE MERCADOS (LOTE) ================= */
+/* ================= COMPARAÇÃO DE PREÇOS ENTRE MERCADOS ================= */
 function parseBlocosDeTexto(texto){
   const compras = [];
   const regexBloco = /MERCADO:\s*(.+)\r?\nDATA:\s*([^\r\n]+)\r?\n[-=]+\r?\nITENS:\r?\n([\s\S]*?)\r?\n[-=]+\r?\nTOTAL:\s*R\$\s*([\d.,]+)/g;
@@ -1060,7 +1058,7 @@ function processarAnalisePrecos(textos){
   const resultadoDiv = document.getElementById('resultadoPrecos');
 
   if(todasCompras.length === 0){
-    resultadoDiv.innerHTML = '<p class="empty">Não consegui reconhecer nenhuma compra nesses arquivos. Use os .txt exportados por este app (comprovante ou relatório completo).</p>';
+    resultadoDiv.innerHTML = '<p class="empty">Não consegui reconhecer nenhuma compra nesses arquivos. Use os .txt exportados por este app.</p>';
     return;
   }
 
@@ -1070,7 +1068,6 @@ function processarAnalisePrecos(textos){
     porMercado[c.mercado].push(c);
   });
 
-  // Variação de preço ao longo do tempo, por mercado
   let htmlVariacoes = '';
   Object.entries(porMercado).forEach(([mercado, listaCompras]) => {
     listaCompras.sort((a,b) => parseDataBR(a.dataStr) - parseDataBR(b.dataStr));
@@ -1099,14 +1096,12 @@ function processarAnalisePrecos(textos){
   });
   if(!htmlVariacoes) htmlVariacoes = '<p class="empty">Nenhum item se repetiu no mesmo mercado para comparar variação de preço.</p>';
 
-  // Ranking por gasto médio de visita
   const mediaPorMercado = Object.entries(porMercado).map(([mercado, listaCompras]) => ({
     mercado,
     media: listaCompras.reduce((s,c)=>s+c.total,0) / listaCompras.length,
     visitas: listaCompras.length
   })).sort((a,b) => a.media - b.media);
 
-  // Mercado mais barato por item em comum
   const itemPorMercado = {};
   todasCompras.forEach(c => {
     c.itens.forEach(it => {
@@ -1233,7 +1228,7 @@ menuBtn.addEventListener('click', openDrawer);
 closeDrawer.addEventListener('click', closeDrawerFn);
 overlay.addEventListener('click', closeDrawerFn);
 
-/* ---------- Confirm modal (apagar histórico) ---------- */
+/* ---------- Modal Apagar Histórico ---------- */
 const modalOverlay = document.getElementById('modalOverlay');
 const modalCancel = document.getElementById('modalCancel');
 const modalConfirm = document.getElementById('modalConfirm');
@@ -1288,7 +1283,7 @@ function fecharModalQR(){
 }
 function iniciarCamera(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    qrResultado.innerHTML = '<p class="note-small">Este navegador/contexto não permite acesso à câmera aqui (é necessário HTTPS). Use o campo de colar texto abaixo.</p>';
+    qrResultado.innerHTML = '<p class="note-small">Este navegador não permite acesso à câmera aqui (é necessário HTTPS). Use o campo de colar texto abaixo.</p>';
     return;
   }
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -1331,16 +1326,12 @@ function onQRDetectado(texto){
   tentarAutoImportar(texto);
 }
 
-/* Converte o HTML da página da nota em texto simples, preservando quebras de linha */
 function htmlParaTexto(html){
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll('script,style').forEach(el => el.remove());
   return (doc.body ? (doc.body.innerText || doc.body.textContent) : doc.documentElement.textContent) || '';
 }
 
-/* Tenta buscar a página da nota (a partir do link do QR) e importar os itens sozinho.
-   Isso só funciona se o site da nota permitir acesso de outros sites (CORS) — a maioria
-   dos portais da Sefaz não permite, por segurança. Quando falhar, caímos no modo colar texto. */
 async function tentarAutoImportar(url){
   try {
     const resp = await fetch(url);
@@ -1354,42 +1345,100 @@ async function tentarAutoImportar(url){
       currentItems.push({ nome: d.nome, qtd: d.qtd, precoUnitario: preco, totalItem: preco * d.qtd });
     });
     renderItems();
-    qrResultado.innerHTML += `<p class="note-small">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} automaticamente para a compra atual. Revise nomes, quantidades e preços antes de finalizar.</p>`;
+    qrResultado.innerHTML += `<p class="note-small">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} automaticamente. Revise antes de finalizar.</p>`;
     setTimeout(fecharModalQR, 1200);
   } catch(err) {
-    qrResultado.innerHTML += '<p class="note-small">Não consegui importar automaticamente — o site da nota bloqueou o acesso direto (isso é uma restrição de segurança do navegador, comum em sites do governo). Toque no link acima pra abrir a nota, copie o conteúdo da página e cole no campo abaixo pra importar.</p>';
+    qrResultado.innerHTML += '<p class="note-small">Não foi possível auto-importar devido a restrições do site da nota (CORS/Sefaz). Clique no link para abrir a nota, selecione/copie o texto da página e cole abaixo.</p>';
   }
 }
 
-/* Interpretador (melhor esforço) do texto colado da nota fiscal */
+/* ================= PARSER DE NOTAS FISCAIS UNIVERSAL (RECONSTRUTOR) ================= */
 function limparNomeItem(s){
-  return s.replace(/^\(?c[oó]d(igo)?[.:]?\s*\d+\)?/i, '').replace(/\s+/g, ' ').trim();
+  return s
+    .replace(/^\(?c[oó]d(igo)?[.:]?\s*\d+\)?/i, '')
+    .replace(/^\d{1,14}\s+/, '') // Remove código EAN/Interno no início
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 function capitalize(str){
   if(!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
+
 function parseTextoNota(texto){
   const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
   const detectados = [];
+  const termosIgnorados = /total|subtotal|desconto|troco|valor pago|dinheiro|cart[aã]o|imposto|tributo|cpf|cnpj|chf|chave|via consumidor|protocolo|sefaz|data|hora|op:|caixa:/i;
+
   for(let i = 0; i < linhas.length; i++){
     const linha = linhas[i];
-    let m = linha.match(/qtde\.?:?\s*([\d.,]+).*?vl\.?\s*unit\.?:?\s*([\d.,]+)/i);
+
+    // Ignora cabeçalho/rodapé das notas
+    if(termosIgnorados.test(linha) && !linha.match(/qtde|unid|vl\./i)) continue;
+
+    // PADRÃO 1: Linha de Detalhes da Sefaz (Qtde.: 2  Vl. Unit.: 4,50  Total: 9,00)
+    let m = linha.match(/(?:qtde?|qtd|quantidade)\.?:?\s*([\d.,]+).*?(?:vl\.?\s*unit|valor\s*unit|unit)\.?:?\s*([\d.,]+)/i);
     if(m){
-      const qtd = Math.round(parseValorBR(m[1])) || 1;
+      const qtd = parseValorBR(m[1]) || 1;
       const precoUnit = parseValorBR(m[2]);
-      const nomeCandidato = linhas[i-1] || 'Item';
-      detectados.push({ nome: capitalize(limparNomeItem(nomeCandidato)), qtd, preco: precoUnit });
-      continue;
+      let nomeCandidato = linhas[i-1] || 'Item';
+      
+      // Ajusta se a linha anterior for apenas o código do produto
+      if(nomeCandidato.match(/^\d+$/) && i > 1){
+        nomeCandidato = linhas[i-2];
+      }
+
+      if(!termosIgnorados.test(nomeCandidato)){
+        detectados.push({ nome: capitalize(limparNomeItem(nomeCandidato)), qtd: Math.max(1, Math.round(qtd)), preco: precoUnit });
+        continue;
+      }
     }
-    m = linha.match(/^(.+?)\s+(\d+)\s*(?:un|und|unid|kg|pc|pct)?\s*[x×]\s*([\d.,]+)/i);
+
+    // PADRÃO 2: Padrão inline Ex: "001 ARROZ BRANCO 5KG 2 UN x 21,90 = 43,80" ou "ARROZ BRANCO 2x10,50"
+    m = linha.match(/^(.+?)\s+(\d+[\.,]?\d*)\s*(?:un|und|unid|kg|pc|pct|cx)?\s*(?:[x×*]|por)\s*R?\$?\s*([\d.,]+)/i);
     if(m){
       const nome = capitalize(limparNomeItem(m[1]));
-      const qtd = parseInt(m[2]) || 1;
+      const qtd = Math.max(1, Math.round(parseValorBR(m[2])));
       const precoUnit = parseValorBR(m[3]);
-      if(nome.length > 1) detectados.push({ nome, qtd, preco: precoUnit });
+      if(nome.length > 1 && !termosIgnorados.test(nome)){
+        detectados.push({ nome, qtd, preco: precoUnit });
+        continue;
+      }
+    }
+
+    // PADRÃO 3: Tabelas onde o nome do produto fica numa linha e os valores numéricos na seguinte (Ex: "FEIJAO PRETO 1KG" seguido por "1,000 UN X 8,50")
+    m = linha.match(/^([\d.,]+)\s*(?:un|und|unid|kg|pc|pct)?\s*[x×]\s*([\d.,]+)/i);
+    if(m){
+      const qtd = Math.max(1, Math.round(parseValorBR(m[1])));
+      const precoUnit = parseValorBR(m[2]);
+      const nomeCandidato = linhas[i-1] || '';
+      if(nomeCandidato && !termosIgnorados.test(nomeCandidato) && nomeCandidato.length > 2){
+        detectados.push({ nome: capitalize(limparNomeItem(nomeCandidato)), qtd, preco: precoUnit });
+        continue;
+      }
     }
   }
+
+  // FALLBACK SE NADA FOR ENCONTRADO: Faz uma varredura geral por pares (Nome do Produto -> Preço)
+  if(detectados.length === 0){
+    for(let i = 0; i < linhas.length; i++){
+      const linha = linhas[i];
+      // Verifica se a linha atual contém apenas um valor monetário
+      const matchPreco = linha.match(/^R?\$?\s*(\d+[\.,]\d{2})$/i);
+      if(matchPreco && i > 0){
+        const precoUnit = parseValorBR(matchPreco[1]);
+        const nomeCandidato = linhas[i-1];
+        if(nomeCandidato && !termosIgnorados.test(nomeCandidato) && !nomeCandidato.match(/^R?\$?\s*\d+/)){
+          detectados.push({
+            nome: capitalize(limparNomeItem(nomeCandidato)),
+            qtd: 1,
+            preco: precoUnit
+          });
+        }
+      }
+    }
+  }
+
   return detectados;
 }
 
@@ -1398,7 +1447,7 @@ document.getElementById('btnImportarTexto').addEventListener('click', () => {
   if(!texto.trim()){ alert('Cole o texto da nota fiscal no campo acima.'); return; }
   const detectados = parseTextoNota(texto);
   if(detectados.length === 0){
-    qrResultado.innerHTML += '<p class="note-small">Não consegui reconhecer itens nesse texto. Tente copiar um trecho maior da página da nota (com nome, quantidade e valor de cada item).</p>';
+    qrResultado.innerHTML += '<p class="note-small" style="color:var(--red);">Não foi possível reconhecer itens automaticamente nesse texto. Certifique-se de copiar os detalhes contendo nome e valor das mercadorias.</p>';
     return;
   }
   detectados.forEach(d => {
@@ -1406,7 +1455,7 @@ document.getElementById('btnImportarTexto').addEventListener('click', () => {
     currentItems.push({ nome: d.nome, qtd: d.qtd, precoUnitario: preco, totalItem: preco * d.qtd });
   });
   renderItems();
-  qrResultado.innerHTML += `<p class="note-small">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} para a compra atual. Revise nomes, quantidades e preços antes de finalizar.</p>`;
+  qrResultado.innerHTML += `<p class="note-small" style="color:var(--green);">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} para a compra atual. Revise nomes, quantidades e preços antes de finalizar.</p>`;
   fecharModalQR();
 });
 
@@ -1431,7 +1480,6 @@ function parseVoiceInput(text){
 
   let qtd = 1;
   let preco = null;
-  let nome = raw;
 
   const regexPreco = /(\d+(?:[.,]\d+)?)\s*(?:reais|real|r\$)?\s*$/i;
   const matchPreco = raw.match(regexPreco);
@@ -1453,7 +1501,7 @@ function parseVoiceInput(text){
     raw = raw.slice(0, matchQtdFim.index).trim();
   }
 
-  nome = raw
+  let nome = raw
     .replace(/\b(de|por|custou|com|unidades?|pacotes?|caixas?)\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
