@@ -539,21 +539,6 @@
 
   <hr class="divider">
 
-  <div class="row">
-    <div>
-      <label for="itemNome">Item</label>
-      <input type="text" id="itemNome" placeholder="Ex: Arroz 5kg">
-    </div>
-    <div class="qty-col">
-      <label for="itemQtd">Qtd</label>
-      <input type="number" id="itemQtd" min="1" step="1" value="1" placeholder="1">
-    </div>
-    <div class="price-col">
-      <label for="itemPreco">Preço R$</label>
-      <input type="number" id="itemPreco" step="0.01" min="0" placeholder="0,00">
-    </div>
-  </div>
-
   <div class="mic-row">
     <button type="button" class="mic-btn" id="micUnico"><span class="dot"></span> Ditar item e preço</button>
   </div>
@@ -563,10 +548,8 @@
     <button type="button" class="mic-btn" id="btnAbrirQR">📷 Ler QR Code da nota fiscal</button>
   </div>
 
-  <button class="btn btn-add" id="btnAdd">+ Adicionar item</button>
-
   <ul class="items" id="itemsList">
-    <li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>
+    <li class="empty" style="list-style:none;">nenhum item ainda — dite por voz ou leia o QR Code da nota</li>
   </ul>
 
   <div class="subtotal-row">
@@ -617,7 +600,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const fmt = v => 'R$ ' + v.toFixed(2).replace('.', ',');
 const parseValorBR = str => parseFloat(String(str).replace(/[^\d,.-]/g,'').replace(',', '.')) || 0;
@@ -648,7 +631,7 @@ function nomeArquivoSeguro(nome){
 /* ================= ITENS DA COMPRA ATUAL ================= */
 function renderItems(){
   if(currentItems.length === 0){
-    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda — comece adicionando acima</li>';
+    itemsList.innerHTML = '<li class="empty" style="list-style:none;">nenhum item ainda — dite por voz ou leia o QR Code da nota</li>';
   } else {
     itemsList.innerHTML = currentItems.map((it, i) => `
       <li>
@@ -667,40 +650,17 @@ function renderItems(){
   subtotalValue.textContent = fmt(subtotal);
 }
 
-document.getElementById('btnAdd').addEventListener('click', () => {
-  const nomeEl = document.getElementById('itemNome');
-  const qtdEl = document.getElementById('itemQtd');
-  const precoEl = document.getElementById('itemPreco');
-
-  const nome = nomeEl.value.trim();
-  const qtd = parseInt(qtdEl.value) || 1;
-  const preco = parseFloat(precoEl.value);
-
-  if(!nome || isNaN(preco) || preco < 0 || qtd < 1){
-    nomeEl.style.outline = !nome ? '2px solid var(--red)' : '';
-    qtdEl.style.outline = (isNaN(qtd) || qtd < 1) ? '2px solid var(--red)' : '';
-    precoEl.style.outline = (isNaN(preco) || preco < 0) ? '2px solid var(--red)' : '';
-    return;
-  }
-
+/* Adiciona um item direto na compra atual (usado pelo ditado por voz e pela importação da nota/QR) */
+function adicionarItemCompra(nome, qtd, preco){
+  nome = (nome || '').trim();
+  qtd = parseInt(qtd) || 1;
+  preco = parseFloat(preco);
+  if(!nome || isNaN(preco) || preco < 0 || qtd < 1) return false;
   const totalItem = preco * qtd;
   currentItems.push({ nome, qtd, precoUnitario: preco, totalItem });
-
-  nomeEl.value = '';
-  qtdEl.value = '1';
-  precoEl.value = '';
-  nomeEl.style.outline = '';
-  qtdEl.style.outline = '';
-  precoEl.style.outline = '';
   renderItems();
-  nomeEl.focus();
-});
-
-[document.getElementById('itemNome'), document.getElementById('itemQtd'), document.getElementById('itemPreco')].forEach(el => {
-  el.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnAdd').click(); }
-  });
-});
+  return true;
+}
 
 /* ================= COMPARAÇÃO COM LISTA DE COMPRAS ================= */
 function compararComLista(itensComprados, itensLista){
@@ -1366,8 +1326,39 @@ function onQRDetectado(texto){
   let html = '';
   if(chave) html += `<p><strong>Chave de acesso:</strong> ${chave}</p>`;
   html += `<p><a href="${texto}" target="_blank" rel="noopener">🔗 Abrir nota fiscal no navegador</a></p>`;
-  html += '<p class="note-small">O QR Code só contém o link da nota — não a lista de produtos. Abra o link, copie o texto com os itens e cole no campo abaixo para importar automaticamente.</p>';
+  html += '<p class="note-small">QR Code lido. Tentando importar os itens automaticamente...</p>';
   qrResultado.innerHTML = html;
+  tentarAutoImportar(texto);
+}
+
+/* Converte o HTML da página da nota em texto simples, preservando quebras de linha */
+function htmlParaTexto(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style').forEach(el => el.remove());
+  return (doc.body ? (doc.body.innerText || doc.body.textContent) : doc.documentElement.textContent) || '';
+}
+
+/* Tenta buscar a página da nota (a partir do link do QR) e importar os itens sozinho.
+   Isso só funciona se o site da nota permitir acesso de outros sites (CORS) — a maioria
+   dos portais da Sefaz não permite, por segurança. Quando falhar, caímos no modo colar texto. */
+async function tentarAutoImportar(url){
+  try {
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const html = await resp.text();
+    const texto = htmlParaTexto(html);
+    const detectados = parseTextoNota(texto);
+    if(detectados.length === 0) throw new Error('nenhum item reconhecido');
+    detectados.forEach(d => {
+      const preco = (d.preco !== null && !isNaN(d.preco)) ? d.preco : 0;
+      currentItems.push({ nome: d.nome, qtd: d.qtd, precoUnitario: preco, totalItem: preco * d.qtd });
+    });
+    renderItems();
+    qrResultado.innerHTML += `<p class="note-small">✅ ${detectados.length} ite${detectados.length===1?'m foi':'ns foram'} importado${detectados.length===1?'':'s'} automaticamente para a compra atual. Revise nomes, quantidades e preços antes de finalizar.</p>`;
+    setTimeout(fecharModalQR, 1200);
+  } catch(err) {
+    qrResultado.innerHTML += '<p class="note-small">Não consegui importar automaticamente — o site da nota bloqueou o acesso direto (isso é uma restrição de segurança do navegador, comum em sites do governo). Toque no link acima pra abrir a nota, copie o conteúdo da página e cole no campo abaixo pra importar.</p>';
+  }
 }
 
 /* Interpretador (melhor esforço) do texto colado da nota fiscal */
@@ -1407,7 +1398,7 @@ document.getElementById('btnImportarTexto').addEventListener('click', () => {
   if(!texto.trim()){ alert('Cole o texto da nota fiscal no campo acima.'); return; }
   const detectados = parseTextoNota(texto);
   if(detectados.length === 0){
-    qrResultado.innerHTML += '<p class="note-small">Não consegui reconhecer itens nesse texto. Adicione os itens manualmente no formulário principal.</p>';
+    qrResultado.innerHTML += '<p class="note-small">Não consegui reconhecer itens nesse texto. Tente copiar um trecho maior da página da nota (com nome, quantidade e valor de cada item).</p>';
     return;
   }
   detectados.forEach(d => {
@@ -1494,9 +1485,16 @@ if(!SpeechRecognitionAPI){
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       const parsed = parseVoiceInput(transcript);
-      if(parsed.nome) document.getElementById('itemNome').value = parsed.nome;
-      document.getElementById('itemQtd').value = parsed.qtd;
-      if(parsed.preco !== null) document.getElementById('itemPreco').value = parsed.preco;
+      let preco = parsed.preco;
+      if(preco === null){
+        const digitado = window.prompt(`Não entendi o preço de "${parsed.nome}". Digite o preço unitário (R$):`, '');
+        preco = parseFloat((digitado || '').replace(',', '.'));
+      }
+      if(isNaN(preco) || preco === null){
+        alert('Item não adicionado: preço inválido.');
+        return;
+      }
+      adicionarItemCompra(parsed.nome, parsed.qtd, preco);
     };
     recognition.start();
   });
