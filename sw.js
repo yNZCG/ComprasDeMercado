@@ -1,5 +1,3 @@
-
-Sw · JS
 const CACHE_NAME = 'nota-de-compras-v1';
 const ARQUIVOS_PARA_CACHE = [
   './index.html',
