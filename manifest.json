@@ -2,7 +2,7 @@
   "name": "Nota de Compras",
   "short_name": "Nota Compras",
   "description": "Registre compras, monte listas e compare preços entre mercados.",
-  "start_url": "./nota-de-compras.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
